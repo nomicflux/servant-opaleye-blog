@@ -1,5 +1,5 @@
 dist/
-stack.core
+*.core
 *.swp
 *~
 .stack-work

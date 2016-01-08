@@ -19,6 +19,10 @@ library
                      , App
                      , Api.User
                      , Api.BlogPost
+                     , Models.User
+                     , Models.BlogPost
+                     , Queries.User
+                     , Queries.BlogPost
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , servant-server
@@ -26,6 +30,11 @@ library
                      , warp
                      , either
                      , datetime
+                     , opaleye
+                     , product-profunctors
+                     , bytestring
+                     , postgresql-simple
+                     , transformers
   default-language:    Haskell2010
 
 executable blog-tutorial-exe

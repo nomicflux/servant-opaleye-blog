@@ -1,18 +1,27 @@
-Assumptions: Have gone through Servant and Opaleye tutorials, need something on how to put it together 
-for a real application
+- Separate out into Model files
 
-- Separate out APIs
-- Create Api directory
-- Create User API
-- Move over User info
-- Create Email type, since will be passed around (Create App file, since used in multiple contexts)
-- Create JSON instance (so password never gets turned into JSON)
-- Add Server
-- Add functions
-- Abstract out EitherT ServantErr IO ... to App.hs
+- Not going into specifics of extensions - rule of thumb: add it if the compiler tells you to
 
-- Do similar with BlogPost
+- User.hs:
+- Make datatype polymorphic
+- Create concrete types
+- Make password ByteString now, to now worry about db changes later
+- Change FromJSON to deal with bytestring
+- Product Profunctors!
+- Make table
+- Make conversion function
 
-- Edit Cabal file
-- Add dependencies
-- Add modules
+- BlogPost.hs:
+- Similar
+- Need 4 concrete types: differences between reading and writing
+- Set so automatically disregards any id and timestamp sent in
+
+- Add Queries
+
+- Pass in Database Info!
+- Add to main, since IO (will change eventually)
+- Thread connection info throughout
+- (Changing Post return values to give back db info)
+- In Api/BlogPost.hs, remember to change datatypes accordingly
+
+- Update cabal file
