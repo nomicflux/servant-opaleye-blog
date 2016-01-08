@@ -35,6 +35,7 @@ library
                      , bytestring
                      , postgresql-simple
                      , transformers
+                     , pwstore-fast
   default-language:    Haskell2010
 
 executable blog-tutorial-exe
