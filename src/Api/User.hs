@@ -6,9 +6,9 @@ module Api.User where
 import Servant
 import Opaleye
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Reader (ask)
 import Data.Maybe (listToMaybe)
 import Data.Int (Int64)
-import qualified Database.PostgreSQL.Simple as PGS
 
 import App
 import Models.User
@@ -22,22 +22,26 @@ type UserAPI = Get '[JSON] [UserRead]
 userAPI :: Proxy UserAPI
 userAPI = Proxy
 
-userServer :: PGS.Connection -> Server UserAPI
-userServer con = getUsers con
-            :<|> getUserByEmail con
-            :<|> verifyUser con
-            :<|> postUser con
+userServer :: ServerT UserAPI AppM
+userServer = getUsers
+        :<|> getUserByEmail
+        :<|> verifyUser
+        :<|> postUser
 
-getUsers :: PGS.Connection -> AppM [UserRead]
-getUsers con = liftIO $ runQuery con usersQuery
+getUsers :: AppM [UserRead]
+getUsers = do con <- ask
+              liftIO $ runQuery con usersQuery
 
-getUserByEmail :: PGS.Connection -> Email -> AppM (Maybe UserRead)
-getUserByEmail con email = liftIO $ listToMaybe <$> runQuery con (userByEmailQuery email)
+getUserByEmail :: Email -> AppM (Maybe UserRead)
+getUserByEmail email = do con <- ask
+                          liftIO $ listToMaybe <$> runQuery con (userByEmailQuery email)
 
-verifyUser :: PGS.Connection -> UserWrite -> AppM Bool
-verifyUser con user = do dbUser <- getUserByEmail con (userEmail user)
-                         return $ compareUsers dbUser user
+verifyUser :: UserWrite -> AppM Bool
+verifyUser user = do con <- ask
+                     dbUser <- getUserByEmail (userEmail user)
+                     return $ compareUsers dbUser user
 
-postUser :: PGS.Connection -> UserWrite -> AppM Int64
-postUser con user = do newUser <- liftIO $ userToPG user
-                       liftIO $ runInsert con userTable newUser
+postUser :: UserWrite -> AppM Int64
+postUser user = do con <- ask
+                   newUser <- liftIO $ userToPG user
+                   liftIO $ runInsert con userTable newUser

@@ -1,5 +1,6 @@
-- Add PasswordStore
-- Split User type
-- Make password a plain string for UserWrite, since that's what will be entered
+- Change App monad type in App.hs
 
-- Add verification to API and Model
+- Create Nat function
+- "enter" new server type
+- Remove PGS.Connection references
+- Add in ask to monadic blocks
