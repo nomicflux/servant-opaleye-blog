@@ -248,7 +248,29 @@ The main difference to note is that you will need to specify whether you want a 
 
 We're getting close.  One thing we have not done yet is actually connect to the database.  Opaleye does the work of setting up tables and such, but we still need to connect to a server.
 
-TODO: fix Lib.hs, since I never provide connection information; I must have edited the file and forgotten to make a commit.
+Connection information is in `IO`.  If we look at Lib.hs, we have one function which deals in `IO`, and that is `startApp`.  This seems like as good a place as any to put the connection to our database:
+```haskell
+startApp :: IO ()
+startApp = do
+             con <- PGS.connect PGS.defaultConnectInfo
+                                { PGS.connectUser = "blogtutorial"
+                                , PGS.connectPassword = "blogtutorial"
+                                , PGS.connectDatabase = "blogtutorial"
+                                }
+             run 8080 $ app con
+```
+Once connected, we'll need to thread that connection along to the application, and from there to all of our servers.  As you can see in the code snippet above, we call `app` with `con` as an argument.  Let's update that now:
+```haskell
+app :: PGS.Connection -> Application
+app con = serve api $ server con
+```
+And we had to pass `con` on to `server` so that everyone can use it:
+```haskell
+server :: PGS.Connection -> Server API
+server con = userServer con
+        :<|> blogPostServer con
+```
+And from here, it's the concern of our individual sub-APIs.  Passing the buck at its finest.
 
 ## Step 8: Update the APIs
 
