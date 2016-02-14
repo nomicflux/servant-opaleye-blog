@@ -96,7 +96,7 @@ import Api.User
 import Api.BlogPost
 ```
 
-Forming an API out of sub-APIs is no different then what we've already done:
+Forming an API out of sub-APIs is no different than what we've already done:
 ```{haskell}
 type API = "users" :> UserAPI
            :<|> "posts" :> BlogPostAPI
