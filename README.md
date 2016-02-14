@@ -88,7 +88,38 @@ data BlogPost = BlogPost
 ```
 All of the steps will be the same as for the User API.  For an exercise, see how much you can implement on your own without looking at the BlogPost.hs file in the "src/API/" directory.
 
-## Step 5: Edit Cabal File
+## Step 5: Put the APIs together
+
+Now we have a User API and a BlogPost API, with their respective servers. We'll need to put them together for our main application.  Let's go back to Lib.hs, and add to the import list:
+```{haskell}
+import Api.User
+import Api.BlogPost
+```
+
+Forming an API out of sub-APIs is no different then what we've already done:
+```{haskell}
+type API = "users" :> UserAPI
+           :<|> "posts" :> BlogPostAPI
+
+api :: Proxy API
+api = Proxy
+
+server :: Server API
+server = userServer
+    :<|> blogPostServer
+```
+We create the type by gluing together the sub-APIs and their respective endpoints.  Then we make a proxy and set up a server.  The server just refers back to the `userServer` and the `blogPostServer` we've already created.
+
+Finally, we need to create an application to do the actually serving.  This should already be part of the Lib.hs code:
+```{haskell}
+app :: Application
+app = serve api server
+
+startApp :: IO ()
+startApp = run 8080 app
+```
+
+## Step 6: Edit Cabal File
 
 Ok, so the code is written, time to fire this thing up, right?  Not so fast - you could end up with some nasty, uninformative error messages at this point.
 
@@ -96,8 +127,13 @@ First, make sure that you add the modules we've been working on to the Cabal fil
 
 Second, add in all the depencies we've used.  If you forget one, Cabal will let you know.  Check the blog-tutorial.cabal file for the specific ones I've added.
 
-## Step 6: Run
+## Step 7: Run
 
 At this point, you should have a working Servant server.  Type `stack build` to build it, and `stack exec blog-tutorial-exe` to run it.
 
-TODO: Add curl commands
+To test it out, try some basic curl commands:
+```
+curl 127.0.0.1:8080/users
+curl 127.0.0.1:8080/posts
+curl -d '{"email": "nikolatesla@hotmail.com", "password": "123abc"}' -H "Content-type:Application/JSON" 127.0.0.1:8080/users
+```
