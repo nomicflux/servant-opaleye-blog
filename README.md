@@ -6,9 +6,9 @@ Note: The setup I have for separating out files and folders is purely my own.  I
 
 ## Step 1: Create App.hs
 
-This is the place where I generally put basic information for the entire application.  For example, I get tired of typing `haskell EitherT ServantErr IO` all of the time, so I've created a type alias `haskell AppM` instead.  Once we get to Lesson 4, we'll see that this setup will greatly ease our transition into more complex transformers.
+This is the place where I generally put basic information for the entire application.  For example, I get tired of typing `EitherT ServantErr IO` all of the time, so I've created a type alias `AppM` instead.  Once we get to Lesson 4, we'll see that this setup will greatly ease our transition into more complex transformers.
 
-Similarly, I've created typealiases for `haskell BlogPostId` and `haskell Email` as well.  In theory, the rest of the code should just have to know that it is dealing with *emails* and *ids*, and not worry about the underlying representation.  It is, of course, more complicated than that, since we'll also have to connect up Haskell's representation with the database and with JSON inputs, but this is a start.
+Similarly, I've created typealiases for `BlogPostId` and `Email` as well.  In theory, the rest of the code should just have to know that it is dealing with *emails* and *ids*, and not worry about the underlying representation.  It is, of course, more complicated than that, since we'll also have to connect up Haskell's representation with the database and with JSON inputs, but this is a start.
 
 ## Step 2: Create API directior
 
@@ -29,9 +29,9 @@ data User = User
 
 ### JSON
 
-Next, let's create JSON representations.  We will use a different representation when converting to JSON as opposed to converting from JSON, so we'll have to roll our own `haskell toJSON` and `haskell parseJSON` functions.  When converting `haskell toJSON`, we'll just package up the `haskell userEmail` field.  However, whene using `haskell parseJSON`, we'll take in both a `haskell userEmail` and a `haskell userPassword`.
+Next, let's create JSON representations.  We will use a different representation when converting to JSON as opposed to converting from JSON, so we'll have to roll our own `toJSON` and `parseJSON` functions.  When converting `toJSON`, we'll just package up the `userEmail` field.  However, whene using `parseJSON`, we'll take in both a `userEmail` and a `userPassword`.
 
-(If you have not used AESON before to convert to/from JSON, what we are doing is this: in `haskell toJSON`, we set up an `haskell object`, which matches up JSON fields with whatever we want.  Here, I lined up the field "email" with `haskell userEmail user`, but I could have just set all emails to "bob@juno.com" if I felt like it.  To convert from JSON, we set up a `haskell parseJSON` function, which takes an `object` and parses out the fields using `haskell .:`.  So, for example, `haskell object .: "email"` is something like `javascript object.email` in javascript, which can then be used as part of a *User* datatype.  The main gotcha to watch out for is that AESON uses `haskell Text` instead of `haskell String`, so we have to add `haskell {-# LANGUAGE OverloadedStrings}` if we don't feel like manually packing each `haskell String`.)
+(If you have not used AESON before to convert to/from JSON, what we are doing is this: in `toJSON`, we set up an `object`, which matches up JSON fields with whatever we want.  Here, I lined up the field "email" with `userEmail user`, but I could have just set all emails to "bob@juno.com" if I felt like it.  To convert from JSON, we set up a `parseJSON` function, which takes an `object` and parses out the fields using `.:`.  So, for example, `object .: "email"` is something like `javascript object.email` in javascript, which can then be used as part of a *User* datatype.  The main gotcha to watch out for is that AESON uses `Text` instead of `String`, so we have to add `{-# LANGUAGE OverloadedStrings}` if we don't feel like manually packing each `String`.)
 
 ### API
 
@@ -41,9 +41,9 @@ type UserAPI = Get '[JSON] [User]
                :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
                :<|> ReqBody '[JSON] User :> Post '[JSON] [User]
 ```
-We'll have a root endpoint which responds to a __GET__ and returns a List of *User*s in JSON format.  Next, we'll add an endpoint at "/{someone's email}" which will look up our current users and `haskell Maybe` return one.  Finally, we'll let people __POST__ to our mini-server a *User*, and which will return a list of *User*s, also in JSON.
+We'll have a root endpoint which responds to a __GET__ and returns a List of *User*s in JSON format.  Next, we'll add an endpoint at "/{someone's email}" which will look up our current users and `Maybe` return one.  Finally, we'll let people __POST__ to our mini-server a *User*, and which will return a list of *User*s, also in JSON.
 
-Then, we'll make sure to add a `haskell Proxy` for our API:
+Then, we'll make sure to add a `Proxy` for our API:
 ```{haskell}
 userAPI :: Proxy UserAPI
 userAPI = Proxy
@@ -72,7 +72,7 @@ getUserByEmail email = return $ listToMaybe $ filter ((== email) . userEmail) us
 postUser :: User -> AppM [User]
 postUser user = return $ users ++ [user]
 ```
-As you'll notice, we are using `haskell AppM` in our return value.  This was defined in App.hs as `haskell EitherT ServantErr IO`.  If you wanted to, you could type that in directly, and end up with type signatures such as `User -> EitherT ServantErr IO [User]`.  But, a) that is more of a pain to read and type, and b) we'll be changing that up in a future lesson, so abstracting it out to `haskell AppM` now will save time.
+As you'll notice, we are using `AppM` in our return value.  This was defined in App.hs as `EitherT ServantErr IO`.  If you wanted to, you could type that in directly, and end up with type signatures such as `User -> EitherT ServantErr IO [User]`.  But, a) that is more of a pain to read and type, and b) we'll be changing that up in a future lesson, so abstracting it out to `AppM` now will save time.
 
 ## Step 4: Set up BlogPost API
 
