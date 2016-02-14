@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
 
 module Lib
@@ -9,22 +8,29 @@ module Lib
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
+import qualified Database.PostgreSQL.Simple as PGS
 
 import Api.User
 import Api.BlogPost
 
 type API = "users" :> UserAPI
-           :<|> "posts" :> BlogPostAPI
+      :<|> "posts" :> BlogPostAPI
 
 startApp :: IO ()
-startApp = run 8080 app
+startApp = do
+             con <- PGS.connect PGS.defaultConnectInfo
+                                { PGS.connectUser = "blogtutorial"
+                                , PGS.connectPassword = "blogtutorial"
+                                , PGS.connectDatabase = "blogtutorial"
+                                }
+             run 8080 $ app con
 
-app :: Application
-app = serve api server
+app :: PGS.Connection -> Application
+app con = serve api $ server con
 
 api :: Proxy API
 api = Proxy
 
-server :: Server API
-server = userServer
-    :<|> blogPostServer
+server :: PGS.Connection -> Server API
+server con = userServer con
+        :<|> blogPostServer con
