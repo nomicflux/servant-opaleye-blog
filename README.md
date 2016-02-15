@@ -10,7 +10,7 @@ This is the place where I generally put basic information for the entire applica
 
 Similarly, I've created typealiases for `BlogPostId` and `Email` as well.  In theory, the rest of the code should just have to know that it is dealing with *emails* and *ids*, and not worry about the underlying representation.  It is, of course, more complicated than that, since we'll also have to connect up Haskell's representation with the database and with JSON inputs, but this is a start.
 
-## Step 2: Create API directior
+## Step 2: Create API directory
 
 The default setup provided by Stack places all of the API information in the Lib.hs file.  That's nice for a quick and dirty website, but we want to get maximum reuse out of our components.  We might be writing other websites with users, for example - it happens from time to time.  So let's create a directory just for API files, and we'll get to work writing *API/User.hs* and *API/BlogPost.hs*.
 
