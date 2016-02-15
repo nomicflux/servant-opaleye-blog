@@ -102,7 +102,7 @@ Notice the type: it is `Table UserColumn UserColumn`.  `UserColumn` is repeated 
 `pUser` is the product profunctor discussed above.  It creates a function which takes a `User'` and returns another `User'`.  We could have written a helper function like such:
 ```haskell
 userTransform user = User { userEmail = required "email" (userEmail user)
-                          , userPassowrd = required "password" (userPassword user)
+                          , userPassword = required "password" (userPassword user)
                           }
 
 userTable' :: Table UserColumn UserColumn
