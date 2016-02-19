@@ -4,7 +4,7 @@ This tutorial covers how to create a simple blog using Servant for the backend, 
 
 The lessons are the different branches.  Each one is self-contained, creating a fully-functioning server which you can play with.
 
-All of this is a work in progress - please feel free to fork and/or submit pull requests if you see something which could be better done, or if anything needs to be updated to current versions of Servant and Opaleye!
+All of this is a work in progress, with typos, tortured prose, and inefficient code galore - please feel free to fork and/or submit pull requests if you see something which could be better done, or if anything needs to be updated to current versions of Servant and Opaleye!
 
 ## Goal
 
@@ -23,3 +23,5 @@ Here are the various branches:
 ## Assumptions
 
 This tutorial assumes that you have glanced at the [Servant Tutorial](http://haskell-servant.github.io/tutorial/) and the [Opaleye Basic Tutorial](https://github.com/tomjaguarpaw/haskell-opaleye/blob/master/Doc/Tutorial/TutorialBasic.lhs).  You do not necessarily need to fully understand these tutorials; I started writing this current one while simply trying to figure out what was what.  But you will be lost without at least a passing familiarity with those other tutorials.
+
+Also, I've tried to make few assumptions about how well people know Haskell.  In general, I'd rather explain things than not; feel free to file an issue if you want a section clarified.
