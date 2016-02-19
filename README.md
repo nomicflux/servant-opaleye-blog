@@ -2,23 +2,25 @@
 
 Here, we'll set up a very basic Servant API.  It won't do much; our __GET__ requests will return hardcoded data, and our __POST__ requests will just tack on new data to a response.  But we will be able to use almost all of the API functionality as we go forward.
 
-Note: The setup I have for separating out files and folders is purely my own.  I think it makes sense, and I'll explain why I chose it, but the important concerns are modularity and composability rather than my own specific idiosyncracies.  Feel free to change any of this for your own needs.
+Note: The setup I have for separating out files and folders is purely my own.  I think it makes sense, and I'll explain why I chose it, but the important concerns are modularity and composability rather than my own idiosyncracies.  Feel free to change any of this for your own needs.
 
 ## Step 1: Create App.hs
 
-This is the place where I generally put basic information for the entire application.  For example, I get tired of typing `EitherT ServantErr IO` all of the time, so I've created a type alias `AppM` instead.  Once we get to Lesson 4, we'll see that this setup will greatly ease our transition into more complex transformers.
+This is the file where I put basic information for the entire application.  For example, I get tired of typing `EitherT ServantErr IO` all of the time, so I've created a type alias `AppM` instead.  Once we get to Lesson 4, we'll see that this setup will greatly ease our transition into more complex transformers.
 
-Similarly, I've created typealiases for `BlogPostId` and `Email` as well.  In theory, the rest of the code should just have to know that it is dealing with *emails* and *ids*, and not worry about the underlying representation.  It is, of course, more complicated than that, since we'll also have to connect up Haskell's representation with the database and with JSON inputs, but this is a start.
+Similarly, I've created typealiases for `BlogPostId` and `Email` as well.  In theory, the rest of the code should just have to know that it is dealing with *emails* and *ids*, and not worry about the underlying representation.  It is, of course, more complicated than that, since we'll also have to connect up Haskell's representation with the database and with JSON inputs, but this is a start toward full modularity.
 
 ## Step 2: Create API directory
 
-The default setup provided by Stack places all of the API information in the Lib.hs file.  That's nice for a quick and dirty website, but we want to get maximum reuse out of our components.  We might be writing other websites with users, for example - it happens from time to time.  So let's create a directory just for API files, and we'll get to work writing *API/User.hs* and *API/BlogPost.hs*.
+The default setup provided by Stack places all of the API information in the Lib.hs file.  That's nice for a quick and dirty website, but we want to get maximum reuse out of our components.  We might be writing other websites which deal with users, for example - it happens from time to time.  So let's create a directory just for API files, and we'll get to work writing *API/User.hs* and *API/BlogPost.hs*.
 
 ## Step 3: Set up User API
 
 ### Datatype
 
-To start, take the *User* information which Stack graciously provided in Lib.hs, and move it to it's own file.  We'll rename things, since it will now be just part of the API rather than the entire thing.  To keep things simple, we will have just two fields: an email (which will double as a unique identifier later) and a password.  We've already set up the *Email* type alias in the App.hs file; we'll want to refer to *Email*s from the *BlogPost* API file as well, but we don't necessarily want *BlogPost*s to be dependent on our implementation of *User* beyond this one detail.  We'll end up with this:
+To start, take the *User* information which Stack graciously provided in Lib.hs, and move it to it's own file.  We'll rename some things, since they will now be just part of the API rather than the entire thing.  `API` becomes `UserAPI`, `server` is copied as `userServer`.
+
+To keep things simple, we will have just two fields for our *User*: an email (which will double as a unique identifier) and a password.  We've already set up the *Email* type alias in the App.hs file; we'll want to refer to *Email*s from the *BlogPost* API file as well, but we don't necessarily want *BlogPost*s to be dependent on our implementation of *User* beyond this one detail.  We end up with this:
 
 ```{haskell}
 data User = User
@@ -29,9 +31,11 @@ data User = User
 
 ### JSON
 
-Next, let's create JSON representations.  We will use a different representation when converting to JSON as opposed to converting from JSON, so we'll have to roll our own `toJSON` and `parseJSON` functions.  When converting `toJSON`, we'll just package up the `userEmail` field.  However, whene using `parseJSON`, we'll take in both a `userEmail` and a `userPassword`.
+Next, let's create JSON representations.  We will use a different representation when converting to JSON as opposed to converting from JSON, so we'll have to roll our own `toJSON` and `parseJSON` functions.  When converting `toJSON`, we'll just package up the `userEmail` field.  However, when using `parseJSON`, we'll take in both a `userEmail` and a `userPassword`.
 
-(If you have not used AESON before to convert to/from JSON, what we are doing is this: in `toJSON`, we set up an `object`, which matches up JSON fields with whatever we want.  Here, I lined up the field "email" with `userEmail user`, but I could have just set all emails to "bob@juno.com" if I felt like it.  To convert from JSON, we set up a `parseJSON` function, which takes an `object` and parses out the fields using `.:`.  So, for example, `object .: "email"` is something like `javascript object.email` in javascript, which can then be used as part of a *User* datatype.  The main gotcha to watch out for is that AESON uses `Text` instead of `String`, so we have to add `{-# LANGUAGE OverloadedStrings}` if we don't feel like manually packing each `String`.)
+If you have not used AESON before to convert to/from JSON, what we are doing is this: in `toJSON`, we set up an `object`, which matches up JSON fields with whatever we want.  Here, I lined up the field "email" with `userEmail user`, but I could have just set all emails to "bob@juno.com" if I felt like it.
+
+To convert from JSON, we set up a `parseJSON` function, which takes an `object` and parses out the fields using `.:`.  So, for example, `object .: "email"` is something like `javascript_object.email` in javascript, which can then be used as part of a *User* datatype.  The main gotcha to watch out for is that AESON uses `Text` instead of `String`, so we have to add `{-# LANGUAGE OverloadedStrings}` if we don't feel like manually packing each `String`.
 
 ### API
 
@@ -48,7 +52,7 @@ Then, we'll make sure to add a `Proxy` for our API:
 userAPI :: Proxy UserAPI
 userAPI = Proxy
 ```
-This is a little bit of boilerplate which lets the Type system interact with values which we pass around.  Don't worry about it too much.
+This is a little bit of boilerplate which lets the Type system interact with values which we pass around.  Basically, we can't send `UserAPI`, the Type, as an argument to anything, since it's not a value.  So instead, we send a `Proxy` in its place: `userAPI`.  Don't worry about it too much; by the time you'll need to do anything like this in your code (*if* ever), everything will be clear and you'll be writing the tutorials.
 
 ### Server
 
@@ -72,11 +76,11 @@ getUserByEmail email = return $ listToMaybe $ filter ((== email) . userEmail) us
 postUser :: User -> AppM [User]
 postUser user = return $ users ++ [user]
 ```
-As you'll notice, we are using `AppM` in our return value.  This was defined in App.hs as `EitherT ServantErr IO`.  If you wanted to, you could type that in directly, and end up with type signatures such as `User -> EitherT ServantErr IO [User]`.  But, a) that is more of a pain to read and type, and b) we'll be changing that up in a future lesson, so abstracting it out to `AppM` now will save time.
+As you'll notice, we are using `AppM` in our return value.  This was defined in App.hs as `EitherT ServantErr IO`.  If you wanted to, you could type that in directly, and end up with type signatures such as `User -> EitherT ServantErr IO [User]`.  But, a) that is a pain to read and type, and b) we'll be changing it in a future lesson, so abstracting the type out to `AppM` now will save time.
 
 ## Step 4: Set up BlogPost API
 
-Repeat the above steps to set up a blog post.  Create the file "API/BlogPost.hs".  For a datatype, we'll use:
+Repeat the above steps to now set up a blog post.  Create the file "API/BlogPost.hs".  For a datatype, we'll use:
 ```{haskell}
 data BlogPost = BlogPost
               { bpId         :: BlogPostID
@@ -135,5 +139,6 @@ To test it out, try some basic curl commands:
 ```
 curl 127.0.0.1:8080/users
 curl 127.0.0.1:8080/posts
-curl -d '{"email": "nikolatesla@hotmail.com", "password": "123abc"}' -H "Content-type:Application/JSON" 127.0.0.1:8080/users
+curl -d '{"email": "nikolatesla@hotmail.com", "password": "123abc"}' \
+     -H "Content-type:Application/JSON" 127.0.0.1:8080/users
 ```
