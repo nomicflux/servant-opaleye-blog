@@ -2,13 +2,13 @@
 
 You've gotten a Servant server up and running - great!  Now, let's add a database.
 
-The goal for this lesson is to have some basic familarity with setting up Opaleye.  It is complicated; however, I hope that I can show that it doesn't need to be painful, and that the complexity is there for good reason.  We'll set up Opaleye for the *User* datatype first, which will be straightforward.  Then, we'll set it up for the *BlogPost* datatype, where we'll see why some of the boilerplate exists.
+The goal for this lesson is basic familarity with setting up Opaleye.  It is complicated; however, I hope that I can show that it doesn't need to be painful, and that the complexity is there for good reason.  We'll set up Opaleye for the `User` datatype first, which will be straightforward.  Then, we'll set it up for the `BlogPost` datatype, where we'll see why some of the boilerplate exists.
 
 If you look at the files, you'll notice all sorts of language extensions being used (`FlexibleInstances`, `MultiParamTypeClasses`, and so on).  To keep this tutorial from becoming too complicated, I am going to gloss over these.  Add what is in the files, or what the compiler tells you to, and you should be good.  In general, I won't talk too much about dependencies and imports either, unless people complain that they would be helpful; they are all in the files above, if you need them.
 
 ## Step 1: Set up database
 
-In order to use a database, we'll need a database.  I have included blogtutorial_schema.sql if you wish to import the schema into Postgres.  If you would prefer to create the tables manually, here is a rough-and-ready version of what I use:
+In order to use a database, we'll need a database.  I have included *blogtutorial_schema.sql* if you wish to import the schema into Postgres.  If you would prefer to create the tables manually, here is a rough-and-ready version of what I use:
 ```pgsql
 CREATE TABLE users (
     email VARCHAR UNIQUE NOT NULL,
@@ -24,14 +24,12 @@ CREATE TABLE posts (
     "timestamp" TIMESTAMPTZ DEFAULT now(),
     PRIMARY KEY(id)
 );
-
-ALTER TABLE posts ADD CONSTRAINT fk_posts_users FOREIGN KEY(users_email) REFERENCES users(email);
 ```
-Make sure that the password is a *BYTEA*, as we'll be storing binary data in there in future lessons.
+Make sure that the password is a *BYTEA*, as we'll be storing binary data for the password in future lessons.
 
 ## Step 2: Separate out model files
 
-Next, we'll make some adjustments to our API files from the previous lesson.  There, we mixed together the API and the data definitions.  But we'll want to use those data definitions in multiple places: when connecting to our database, when composing queries, when accessing the API, and so on.  We don't want to make everything depend on everything else, so let's place our models in a separate folder.  Create a "src/Models" directory.  We'll start with Models/User.hs.
+Next, we'll make some adjustments to our API files from Lesson 1.  There, we mixed together the API and the data definitions.  But we'll want to use those data definitions in multiple places: when connecting to our database, when composing queries, when accessing the API, and so on.  We don't want to make everything depend on everything else, so let's place our models in a separate folder.  Create a "src/Models" directory.  We'll start with Models/User.hs.
 
 While we're on the subject, we'll also split out our queries into their own folder: "src/Queries".  Query files and API files alike will rely on Model files, but Queries and APIs will have no reliance on each other.
 
@@ -46,11 +44,11 @@ data User' email pwd = User
                          , userPassword :: pwd
                          }
 ```
-Opaleye's tutorials would use `a` for `email` and `b` for `pwd`, but this way the code is clearer about what the different fields are.
+`email` and `pwd`, since they are lowercase, don't actually mean anything to the compiler.  They can be any type, but this makes the code easy to read for humans.
 
-This may seem somewhat odd to you.  Why go to the trouble of setting up datatypes in a typesafe language, only to throw them away and let someone instantiate a `User'` with any two types they want?
+Letting `email` and `pwd` be open to any type may seem somewhat odd.  Why go to the trouble of setting up datatypes in a typesafe language, only to throw them away and let someone instantiate a `User'` with any two types they want?
 
-And this is indeed a bit odd.  Ideally, things like this can be taken care of in the future with dependent types and other deep magicks.  But for the moment, this lets us treat the Opaleye definition of a `User`, and our normal Haskell definition of a `User`, as the same sort of object.  This is even though Opaleye's types need to play nice with Postgres, while the rest of our logic really shouldn't have to think about Postgres at all.  And later, we'll set up separate read and write types as well.
+And this is indeed a bit odd.  Ideally, things like this can be taken care of in the future with dependent types and other deep magicks.  But for the moment, this polymorphic type lets us treat the Opaleye definition of a `User`, and our normal Haskell definition of a `User`, as the same sort of object.  This is even though Opaleye's types need to play nice with Postgres, while the rest of our logic really shouldn't have to think about Postgres at all.  And later, we'll set up separate read and write types as well.
 
 Confused?  If not, you're a genius; pat yourself on the back.  For you mere mortals, just follow along, and hopefully by the end of this lesson you'll have some understading of this craziness, at least enough to use it for your own projects.
 
@@ -59,9 +57,9 @@ Ok, so we've set up the `User'` datatype.  Let's make the concrete instances whi
 type User = User' Email ByteString
 type UserColumn = User' (Column PGText) (Column PGBytea)
 ```
-So we have the type alias `User`, which will be our `User` from the previous lesson.  We also have `UserColumn`, which gives Opaleye what it needs to interact with a database.
+We have the type alias `User`, which will be our `User` from the previous lesson.  We also have `UserColumn`, which gives Opaleye what it needs to interact with a database.
 
-Note that the password is a `ByteString` and not a regular `String`.  That will add a little extra processing for this lesson, but will make things much easier in the future.  We will need to change the `parseJSON` function to accomodate this:
+Note that the password is a `ByteString` and not a regular `String`.  We will need to change the `parseJSON` function to accomodate this:
 ```haskell
 instance FromJSON User where
   parseJSON (Object o) = User <$>
@@ -82,7 +80,7 @@ I can create such a function like this:
 ```haskell
 pairFunc = p2 (map toUpper, (+1))
 ```
-In other words, it takes a pair of functions, and converts it to a function acting on a pair.
+In other words, `p2` takes a pair of functions, and converts them to a function acting on a pair.
 
 This is kind of nice, but it involves importing a library and learning a new syntax for something which wouldn't be too hard to program otherwise.  However, in our case, we get another benefit: the product profunctor we created, `pUser`, is defined for our polymorphic type `User'`.  This means that we can apply `pUser` to Opaleye's types or to our own code's types, and forget about the distinction to an extent.
 
@@ -109,7 +107,7 @@ userTable' :: Table UserColumn UserColumn
 userTable' = Table "users" userTransform
 ```
 
-At this point, we'll also create a helper function to converting our datatype into an Opaleye-Postgres format:
+As long as we're setting up the table, we'll also create a helper function to converting our datatype into an Opaleye-Postgres format:
 ```haskell
 userToPG :: User -> UserColumn
 userToPG = pUser User { userEmail = pgString
@@ -119,7 +117,7 @@ userToPG = pUser User { userEmail = pgString
 
 ### Summary of Opaleye
 
-To break down the complexity of Opaleye a bit, I'd like to break down the steps we just did into a quick list:
+To ease up the complexity of Opaleye, here are the steps we just did:
 
 1. Create polymorphic type
 2. Create concrete types
@@ -129,14 +127,16 @@ To break down the complexity of Opaleye a bit, I'd like to break down the steps 
 
 ## Step 4: Creating User Queries
 
-You probably have a headache from setting up an Opaleye table.  Perhaps you are a step away from running off screaming; the fact that I am about to say that we will start writing Opaleye queries may put you over the edge.  If so, relax; the queries are the nice part about Opaleye.
+You probably have a headache from the previous section.  Perhaps you are a step away from running off screaming; the fact that we are about to write Opaleye queries may put you over the edge.  If so, relax; the queries are the nice part about Opaleye.
 
 Let's start with a simple query which grabs all of our `User`s:
 ```haskell
 usersQuery :: Query UserColumn
 usersQuery = queryTable userTable
 ```
+
 That's it.  No, really, it is.  Next, let's grab `User`s by email:
+
 ```haskell
 userByEmailQuery :: Email -> Query UserColumn
 userByEmailQuery email = proc () -> do
@@ -144,13 +144,14 @@ userByEmailQuery email = proc () -> do
                            restrict -< userEmail user .== pgString email
                            returnA -< user
 ```
-If you are unfamiliar with Arrow syntax, this will look a little wonky, but hopefully you can follow the basic logic: get all the `User`s from the above query, restrict them by only pulling the ones with the email we want, and return those.  Notice that we can place one query smack-dab in another with no concerns about composability.
+
+If you are unfamiliar with Arrow syntax, this will look a little wonky, but you can follow the basic logic: get all the `User`s from the above query, restrict them by the email we want, and return the combination from those steps.  Notice that we can place one query smack-dab in another with no concerns about composability.
 
 And that is it.
 
 ## Step 5: Create the BlogPost Model
 
-Let's follow the breakdown we had above:
+Let's follow the breakdown we had above at the end of Step 3:
 
 ### Step 5.1: Create Polymorphic Type
 
