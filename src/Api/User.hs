@@ -31,8 +31,8 @@ users = [ User "isaacnewton@gmail.com" "betterthanleibniz"
         ]
 
 type UserAPI = Get '[JSON] [User]
-               :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
-               :<|> ReqBody '[JSON] User :> Post '[JSON] [User]
+          :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
+          :<|> ReqBody '[JSON] User :> Post '[JSON] [User]
 
 userAPI :: Proxy UserAPI
 userAPI = Proxy
