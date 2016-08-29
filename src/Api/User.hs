@@ -15,8 +15,8 @@ import Models.User
 import Queries.User
 
 type UserAPI = Get '[JSON] [User]
-               :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
-               :<|> ReqBody '[JSON] User :> Post '[JSON] Int64
+          :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
+          :<|> ReqBody '[JSON] User :> Post '[JSON] Int64
 
 userAPI :: Proxy UserAPI
 userAPI = Proxy
