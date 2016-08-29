@@ -20,8 +20,16 @@ Here are the various branches:
 4. Lesson 3 - Encryption: Passwords are tricky business.  Even a tutorial shouldn't have you storing passwords in plaintext.  However, Haskell throws a wrench into the works: we'll have to deal with __IO__ to work with encryption.  It turns out this is simpler than it might sound (and much simpler than I myself had feared when I first attempted to do this).  Our setup will handle encrytion into the database, and dropping the information for __GET__ requests, easily and automatically.
 5. Lesson 4 - Transformers: Back in Lesson 2, we introduced databases.  And databases require connections, which we've been passing function to function.  This complicates function calls, however, and ensures that the entire codebase has to agree on how precisely we connect to the database.  Wouldn't it be nice to write modular code, which keeps such tasks from infecting all of our components?  Using transformers, we can!
 
+## Future Sections
+
+The next few sections under development are:
+
+6. Lesson 5 - Connection Pooling.  Can we avoid making so many connections to the database?
+7. Lesson 6 - Testing.
+8. Lesson 7 - Logging
+
 ## Assumptions
 
-This tutorial assumes that you have glanced at the [Servant Tutorial](http://haskell-servant.github.io/tutorial/) and the [Opaleye Basic Tutorial](https://github.com/tomjaguarpaw/haskell-opaleye/blob/master/Doc/Tutorial/TutorialBasic.lhs).  You do not necessarily need to fully understand these tutorials; I started writing this current one while simply trying to figure out what was what.  But you will be lost without at least a passing familiarity with those other tutorials.
+This tutorial assumes that you have glanced at the [Servant Tutorial](http://haskell-servant.github.io/tutorial/) and the [Opaleye Basic Tutorial](https://github.com/tomjaguarpaw/haskell-opaleye/blob/master/Doc/Tutorial/TutorialBasic.lhs).  You do not necessarily need to fully understand those tutorials; I wrote this current one to figure out what was what.  But you may be lost without at least a passing familiarity with those other tutorials.
 
 Also, I've tried to make few assumptions about how well people know Haskell.  In general, I'd rather explain things than not; feel free to file an issue if you want a section clarified.
