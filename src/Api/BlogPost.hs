@@ -59,7 +59,7 @@ getPosts :: AppM [BlogPost]
 getPosts = return posts
 
 getPostById :: BlogPostID -> AppM (Maybe BlogPost)
-getPostById id = return $ listToMaybe $ filter ((== id) . bpId) posts
+getPostById postID = return $ listToMaybe $ filter ((== postID) . bpId) posts
 
 getPostsByEmail :: Email -> AppM [BlogPost]
 getPostsByEmail email = return $ filter ((== email) . bpUsersEmail) posts
