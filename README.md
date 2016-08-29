@@ -51,7 +51,7 @@ If you have not used AESON before to convert to/from JSON, what we are doing is 
 instance ToJSON BobUser where
   toJSON bob = object [ "email" .= "bob@juno.com" ,
                       , "pasword" .= "Don't you want to know"
-                      , "extrafield" .= "I'm not ever supposed to be here - " ++ userEmail user ]
+                      , "extrafield" .= "I'm not even supposed to be here - " ++ userEmail user ]
 ```
 
 To convert from JSON, we set up a `parseJSON` function, which takes an `object` and parses out the fields using `.:`.  So, for example, `object .: "email"` is something like `javascript_object.email` in javascript, which can then be used as part of a *User* datatype.  The main gotcha to watch out for is that AESON uses `Text` instead of `String`, so we have to add `{-# LANGUAGE OverloadedStrings}` if we don't feel like manually packing each `String`.
