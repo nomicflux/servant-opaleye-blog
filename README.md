@@ -1,6 +1,6 @@
 # Lesson 1 - Servant API
 
-Here, we'll set up a very basic Servant API.  It won't do much; our __GET__ requests will return hardcoded data, and our __POST__ requests will just tack on new data to a response.  But we will be able to use almost all of the API functionality as we go forward.
+Here, we'll set up a very basic Servant API.  It won't do much; our __GET__ requests will return hardcoded data, and our __POST__ requests will just append the posted data to the hardcoded response.  But we will be able to use almost all of the API functionality as we go forward.
 
 Note: The setup I have for separating out files and folders is purely my own.  I think it makes sense, and I'll explain why I chose it, but the important concerns are modularity and composability rather than my own idiosyncracies.  Feel free to change any of this for your own needs.
 
@@ -18,7 +18,7 @@ The default setup provided by Stack places all of the API information in the Lib
 
 ### Datatype
 
-To start, take the *User* information which Stack graciously provided in Lib.hs, and move it to it's own file.  We'll rename some things, since they will now be just part of the API rather than the entire thing.  `API` becomes `UserAPI`, `server` is copied as `userServer`.
+To start, take the *User* information which Stack graciously provided in Lib.hs, and move it to it's own file.  We'll rename some things:  `API` becomes `UserAPI`, `server` becomes `userServer`.
 
 To keep things simple, we will have just two fields for our *User*: an email (which will double as a unique identifier) and a password.  We've already set up the *Email* type alias in the App.hs file; we'll want to refer to *Email*s from the *BlogPost* API file as well, but we don't necessarily want *BlogPost*s to be dependent on our implementation of *User* beyond this one detail.  We end up with this:
 
@@ -31,21 +31,40 @@ data User = User
 
 ### JSON
 
-Next, let's create JSON representations.  We will use a different representation when converting to JSON as opposed to converting from JSON, so we'll have to roll our own `toJSON` and `parseJSON` functions.  When converting `toJSON`, we'll just package up the `userEmail` field.  However, when using `parseJSON`, we'll take in both a `userEmail` and a `userPassword`.
+Next, let's create JSON representations.  We will use a different representation when converting to JSON as opposed to converting from JSON, so we'll have to roll our own `toJSON` and `parseJSON` functions.  When converting `toJSON`, we'll just package up the `userEmail` field - we should never return user passwords!
+```{haskell}
+instance ToJSON User where
+  toJSON user = object [ "email" .= userEmail user ]
+```
 
-If you have not used AESON before to convert to/from JSON, what we are doing is this: in `toJSON`, we set up an `object`, which matches up JSON fields with whatever we want.  Here, I lined up the field "email" with `userEmail user`, but I could have just set all emails to "bob@juno.com" if I felt like it.
+However, when using `parseJSON`, we'll take in both a `userEmail` and a `userPassword`:
+```{haskell}
+instance FromJSON User where
+  parseJSON (Object o) = User <$>
+                              o .: "email" <*>
+                              o .: "password"
+  parseJSON _ = mzero
+```
+
+If you have not used AESON before to convert to/from JSON, what we are doing is this: in `toJSON`, we set up an `object`, which matches up JSON keys with whatever we want.  Here, I lined up the key "email" with `userEmail user`, but I could have just set all emails to "bob@juno.com" if I felt like it.
+```{haskell}
+instance ToJSON BobUser where
+  toJSON bob = object [ "email" .= "bob@juno.com" ,
+                      , "pasword" .= "Don't you want to know"
+                      , "extrafield" .= "I'm not ever supposed to be here - " ++ userEmail user ]
+```
 
 To convert from JSON, we set up a `parseJSON` function, which takes an `object` and parses out the fields using `.:`.  So, for example, `object .: "email"` is something like `javascript_object.email` in javascript, which can then be used as part of a *User* datatype.  The main gotcha to watch out for is that AESON uses `Text` instead of `String`, so we have to add `{-# LANGUAGE OverloadedStrings}` if we don't feel like manually packing each `String`.
 
 ### API
 
-What good is an API without an API?  We'll set up the endpoints as such:
+What good is an API without the API itself?  We'll set up the endpoints as such:
 ```{haskell}
 type UserAPI = Get '[JSON] [User]
-               :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
-               :<|> ReqBody '[JSON] User :> Post '[JSON] [User]
+          :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
+          :<|> ReqBody '[JSON] User :> Post '[JSON] [User]
 ```
-We'll have a root endpoint which responds to a __GET__ and returns a List of *User*s in JSON format.  Next, we'll add an endpoint at "/{someone's email}" which will look up our current users and `Maybe` return one.  Finally, we'll let people __POST__ to our mini-server a *User*, and which will return a list of *User*s, also in JSON.
+We'll have a root endpoint which responds to a __GET__ and returns a List of *User*s in JSON format.  Next, we'll add an endpoint at "/{someone's email}" which will look up our current users and `Maybe` return one.  Finally, we'll let people __POST__ a *User* to our mini-server, and which will return a list of *User*s, also in JSON.
 
 Then, we'll make sure to add a `Proxy` for our API:
 ```{haskell}
@@ -56,7 +75,7 @@ This is a little bit of boilerplate which lets the Type system interact with val
 
 ### Server
 
-Above, we've set out our API.  We have our endpoints, what they expect from us, and what we expect from them.  This is really just setting up type signatures, however.  We'll need to implement a server:
+Above, we've set out our API.  We have our endpoints, what they expect from us, and what we expect from them.  This is really just setting up type signatures, however.  We'll need to implement a server to make those endpoints *do* something:
 ```{haskell}
 userServer :: Server UserAPI
 userServer = getUsers
@@ -114,7 +133,7 @@ server = userServer
 ```
 We create the type by gluing together the sub-APIs and their respective endpoints.  Then we make a proxy and set up a server.  The server just refers back to the `userServer` and the `blogPostServer` we've already created.
 
-Finally, we need to create an application to do the actually serving.  This should already be part of the Lib.hs code:
+Finally, we need to create an application to do the actual serving.  This should already be part of the Lib.hs code:
 ```{haskell}
 app :: Application
 app = serve api server
