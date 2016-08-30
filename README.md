@@ -1,8 +1,10 @@
 # Lesson 4 - Transformers
 
-Abstractions in disguise.  In Lesson 2, we added a bunch of database connection information.  Now, we need that, or we can't connect to a database, which defeats the purpose of all of that Opaleye work we did.  However, we now have to thread all of that connection information around to the entire program.  That may not be too terrible, but it does require that every single file which uses database connections at all will need to depend on `Database.PostgreSQL.Simple`.  What would happen if we used a different method of connecting to the database?  Is there any way of ensuring that everything will have proper dependecies without us having to manually type it in for every function?  We are Haskell programmers, after all; abstracting away redundancy and automating dependencies is what we are about.
+Abstractions in disguise.  In Lesson 2, we added a bunch of database connection information.  Now, we need that, or we can't connect to a database, which defeats the purpose of all of that Opaleye work we did.  However, we now have to thread all of that connection information around to the entire program.  That may not be too terrible, but it does require that every single file which uses database connections at all will need to depend on `Database.PostgreSQL.Simple`.  What would happen if we used a different method of connecting to the database?  Is there any way of ensuring that everything will have proper dependecies without us having to manually type them in for every function?  We are Haskell programmers, after all; abstracting away redundancy and automating dependencies is what we are about.
 
-Fear no more, by using the power of Monad Transformers, we'll be able to tuck away all of our connection info in a tidy way.  Furthermore, this will apply to any sort of configuration information you may want to pass along; perhaps environment variables, or portions of your server which you want to keep highly configurable.
+Fear no more: by using the power of Monad Transformers, we'll be able to tuck away all of our connection info in a tidy way.  Furthermore, this will apply to any sort of configuration information you may want to pass along; perhaps environment variables, or portions of your server which you want to keep highly configurable.
+
+In this lesson, we'll work with `ReaderT`, as that provides the simplest monad transformer for our purposes.  In a later lesson, we'll find a more efficient approach.
 
 ## Step 1: Update App.hs
 
@@ -16,15 +18,15 @@ And this is the reason why we created it:
 ```haskell
 type AppM = ReaderT Connection (EitherT ServantErr IO)
 ```
-All we do is revise our definition of `AppM`, and most of our heavlifting work is done.  Everything is already set up to use `AppM`.
+All we do is revise our definition of `AppM`, and most of our heavy lifting work is done.  Everything is already set up to use `AppM`.
 
 ## Step 2: Update Lib.hs
 
 We'll need to do a little work in Lib.hs as well.  Servant knows how to use `EitherT ServantErr IO`; it doesn't know what to do with our new `AppM`.
 
-Before we get to the code, let's think about what `AppM` needs to be.  (I know I said it already; forget that for a moment.)  On the one hand, carrying configuration around with us strongly suggests using `Reader` or `ReaderT`.  However, we need to get back to `EitherT ServantErr IO` through a *natural transformation* (the Servant tutorial has more information on that [here](https://haskell-servant.github.io/tutorial/server.html#using-another-monad-for-your-handlers); in short, instead of transforming our data directly, like with a Functor, with want a way to transform the transformation of data.  More prosaically, it's what we're already talking about: we've got a monad of some sort, most likely a `ReaderT Connection a b` where a and b are something else, and we need to get that to `EitherT ServantErr IO b`, without really playing around with `b`.)
+Before we get to the code, let's think about what `AppM` could be.  (I know I gave a solution already; forget that for a moment.)  On the one hand, carrying configuration around with us strongly suggests using `Reader` or `ReaderT`.  However, we need to get back to `EitherT ServantErr IO` through a *natural transformation* (the Servant tutorial has more information on that [here](https://haskell-servant.github.io/tutorial/server.html#using-another-monad-for-your-handlers); in short, instead of transforming our data directly, like with a Functor, with want a way to transform the transformation of data.  We've got a monad of some sort, most likely a `ReaderT Connection a b` where `a` and `b` are something else, and we need to get that to `EitherT ServantErr IO b`, without really playing around with `b`.)
 
-Maybe there are several ways of doing this.  But a very simple one is to choose `ReaderT Connection (EitherT ServantErr IO)`.  We take connection information, and transform it into exactly what we wanted: `EitherT ServantErr IO`.  The complicated type signature is really the simplest processing we could do.
+Maybe there are several ways of doing this.  But a very simple one is to choose `ReaderT Connection (EitherT ServantErr IO)`.  We take connection information from the monad transformer, and apply the transform step of `ReaderT` to get exactly what we wanted: `EitherT ServantErr IO`.  The complicated type signature is really the simplest processing we could do.
 
 The code to carry out this transformation is the following:
 ```haskell
