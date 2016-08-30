@@ -37,7 +37,7 @@ Notice that, since `UserWrite` has gone back to using `String`s, we no longer ha
 
 ## Step 3: Encrypt on Conversion
 
-We'll edit our conversion function to encrypt the password as it is altered to fit Postgres types:
+We'll edit our conversion function to encrypt the password:
 ```haskell
 userToPG :: UserWrite -> IO UserColumn
 userToPG user = do hashedPwd <- flip makePassword 12 . BS.pack . userPassword $ user
@@ -64,14 +64,14 @@ postUser :: PGS.Connection -> UserWrite -> AppM Int64
 postUser con user = do newUser <- liftIO $ userToPG user
                        liftIO $ runInsert con userTable newUser
 ```
-It's almost the same as before.  We just need to grab the `newUser` out of an `IO` action, and insert it into the database as before.  And anytime you find yourself thinking, "I almost have the value I want, but it's stuck in a monad; what do I do?", then remember that you do `do`.
+It's almost the same as before.  We just need to grab the `newUser` out of an `IO` action before inserting it into the database.  And anytime you find yourself thinking, "I almost have the value I want, but it's stuck in a monad; what do I do?", then remember that you do `do`.
 
 While we're here and we've added encrypted passwords, let's add a new endpoint for verification:
 ```haskell
 type UserAPI = Get '[JSON] [UserRead]
-               :<|> Capture "email" Email :> Get '[JSON] (Maybe UserRead)
-               :<|> "verify" :> ReqBody '[JSON] UserWrite :> Post '[JSON] Bool
-               :<|> ReqBody '[JSON] UserWrite :> Post '[JSON] Int64
+          :<|> Capture "email" Email :> Get '[JSON] (Maybe UserRead)
+          :<|> "verify" :> ReqBody '[JSON] UserWrite :> Post '[JSON] Bool
+          :<|> ReqBody '[JSON] UserWrite :> Post '[JSON] Int64
 
 userServer :: PGS.Connection -> Server UserAPI
 userServer con = getUsers con
@@ -87,4 +87,4 @@ Add it to the API signature, add it to the server, add a function for it.  In th
 
 ## Step 5: Update Cabal and Run
 
-As usual, make sure that you let Cabal know that you are now dependent on `Crypto.PasswordStore`.  Then `stack build`, `stack exec blog-tutorial-exe`, and `cul` away.
+As usual, make sure that you let Cabal know that you are now dependent on `Crypto.PasswordStore`.  Then `stack build`, `stack exec blog-tutorial-exe`, and `curl` away.
