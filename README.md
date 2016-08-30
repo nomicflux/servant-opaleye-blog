@@ -4,8 +4,6 @@
 
 Tutorial updated for Servant 0.5.  Sections on connection pooling, logging, and reading in environment variables coming soon!
 
----
-
 This tutorial covers how to create a simple blog using Servant for the backend, and Opaleye to handle database wrangling.
 
 The lessons are the different branches.  Each one is self-contained, creating a fully-functioning server which you can play with.
