@@ -32,7 +32,7 @@ getPosts :: PGS.Connection -> AppM [BlogPostRead]
 getPosts con = liftIO $ runQuery con blogPostsQuery
 
 getPostById :: PGS.Connection -> BlogPostID -> AppM (Maybe BlogPostRead)
-getPostById con id = liftIO $ listToMaybe <$> runQuery con (blogPostByIdQuery id)
+getPostById con postID = liftIO $ listToMaybe <$> runQuery con (blogPostByIdQuery postID)
 
 getPostsByEmail :: PGS.Connection -> Email -> AppM [BlogPostRead]
 getPostsByEmail con email = liftIO $ runQuery con (blogPostsByEmailQuery email)
