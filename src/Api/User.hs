@@ -29,19 +29,19 @@ userServer = getUsers
         :<|> postUser
 
 getUsers :: AppM [UserRead]
-getUsers = do con <- ask >>= getConn
+getUsers = do con <- getConn
               liftIO $ runQuery con usersQuery
 
 getUserByEmail :: Email -> AppM (Maybe UserRead)
-getUserByEmail email = do con <- ask >>= getConn
+getUserByEmail email = do con <- getConn
                           liftIO $ listToMaybe <$> runQuery con (userByEmailQuery email)
 
 verifyUser :: UserWrite -> AppM Bool
-verifyUser user = do con <- ask >>= getConn
+verifyUser user = do con <- getConn
                      dbUser <- getUserByEmail (userEmail user)
                      return $ compareUsers dbUser user
 
 postUser :: UserWrite -> AppM Int64
-postUser user = do con <- ask >>= getConn
+postUser user = do con <- getConn
                    newUser <- liftIO $ userToPG user
                    liftIO $ runInsert con userTable newUser
