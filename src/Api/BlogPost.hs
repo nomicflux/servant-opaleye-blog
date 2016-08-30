@@ -33,8 +33,8 @@ getPosts = do con <- ask
               liftIO $ runQuery con blogPostsQuery
 
 getPostById :: BlogPostID -> AppM (Maybe BlogPostRead)
-getPostById id = do con <- ask
-                    liftIO $ listToMaybe <$> runQuery con (blogPostByIdQuery id)
+getPostById postID = do con <- ask
+                        liftIO $ listToMaybe <$> runQuery con (blogPostByIdQuery postID)
 
 getPostsByEmail :: Email -> AppM [BlogPostRead]
 getPostsByEmail email = do con <- ask
