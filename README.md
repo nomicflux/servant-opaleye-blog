@@ -1,6 +1,6 @@
 # Lesson 5 - Connection Pool and Logging
 
-We've added a database connection, but we only have one at the moment.  We'll want to set up a `Pool` to manage multiple connections - opening new ones as necessary and closing old ones as they become idle.  I'm going to use [resource-pool](https://hackage.haskell.org/package/resource-pool-0.2.3.2/docs/Data-Pool.html) to manage our pool - you may prefer another method.
+We've added a database connection, but we only have the one at the moment.  We'll want to set up a `Pool` to manage multiple connections - opening new ones as necessary and closing old ones as they become idle.  I'm going to use [resource-pool](https://hackage.haskell.org/package/resource-pool-0.2.3.2/docs/Data-Pool.html) to manage our pool - you may prefer another method.
 
 ## Setting up Pools in Lib.hs
 
@@ -13,7 +13,7 @@ Let's break this down.  `createPool` takes:
 
 1. A function to create a connection, of the form `IO a`.
 2. A function to tear down a connection, of the form `(a -> IO())`.
-3. Additional parameters for the number of sub-pools (`Int`), the time before idling out (`NominalDiffTime`, which is a member of the `Num` typeclass which let's us specify it with a number), and the maximum number of resources to keep open in each subpool (`Int`).
+3. Additional parameters for the number of sub-pools (`Int`), the time before idling out (`NominalDiffTime`, which is a member of the `Num` typeclass so we can specify it with a number), and the maximum number of resources to keep open in each subpool (`Int`).
 
 And it returns a `Pool` for whatever `a` we want, wrapped in the `IO` monad.
 
@@ -37,7 +37,7 @@ openConnection = PGS.connect PGS.defaultConnectInfo
                  }
 ```
 
-Lastly, let's change some type signatures to reflect the pass that we're now passing a `Pool` through instead of a `Connection`:
+Lastly, let's change some type signatures to reflect that we're now passing a `Pool` through instead of a `Connection`:
 ```haskell
 readerTToExcept :: Pool.Pool PGS.Connection -> AppM :~> ExceptT ServantErr IO
 readerTToExcept pool = Nat (\r -> runReaderT r pool)
@@ -87,9 +87,9 @@ do pool <- ask
 ```haskell
 do con <- ask >>= getConnFromPool
 ```
-Any time you see a variable in a `do` block which is only there to chain monadic steps together, you can cut it out and just use bind `>>=`.
+Any time you see a variable in a `do` block which is only there to chain monadic steps together, you can cut it out and just use bind `>>=`.  Of course, you can reduce any `do` block to `>>=` and `return` - the trick is finding a balance which allows your code to be readable, focusing on the most important steps while sidelining the others.
 
-You might find it annoying to have to go through and change every instance of `ask` to `ask >>= getConn`.  What if we make other changes later?  Do we want to have to change 20 lines of code every time we alter our connection mechanism?  This depends on what we think our needs are going to be: is it more likely that we'll change the way we do connections, or that we'll need access to the individual pieces of our connection?  Haskell offers us both the potential for encapsulation as well as modularity.  I've shown the more modular approach here, but in the code itself you can see the encapsulated version:
+You might find it annoying to have to go through and change every instance of `ask` to `ask >>= getConn`.  What if we make other changes later?  Do we want to have to change 20 lines of code every time we alter our connection mechanism?  This depends on what we think our needs are going to be: is it more likely that we'll change the way we do connections, or that we'll need access to the individual pieces of our connection within the Api modules?  Haskell offers us both the potential for encapsulation as well as modularity.  I've shown the more modular approach here, but in the code itself in App.hs you can see the encapsulated version:
 ```haskell
 getConn :: AppM Connection
 getConn = ask >>= getConnFromPool
