@@ -2,7 +2,9 @@
 
 #### Updated
 
-Tutorial updated for Servant 0.5.  Sections on connection pooling, logging, and reading in environment variables coming soon!
+Tutorial updated for Servant 0.5.  Sections on testing, logging, and reading in environment variables coming soon!
+
+---
 
 This tutorial covers how to create a simple blog using Servant for the backend, and Opaleye to handle database wrangling.
 
@@ -23,14 +25,15 @@ Here are the various branches:
 3. Lesson 2 - Opaleye: Passing data back and forth is alright, but it is of limited usefulness without data to pass.  This lesson covers the basics of setting up Opaleye.  Our *User* data will provide an example of a simple Opaleye transaction.  Once you are comfortable with that, the *BlogPost* data will show why Opaleye makes somewhat complicated.
 4. Lesson 3 - Encryption: Passwords are tricky business.  Even a tutorial shouldn't have you storing passwords in plaintext.  However, Haskell throws a wrench into the works: we'll have to deal with __IO__ to work with encryption.  It turns out this is simpler than it might sound (and much simpler than I myself had feared when I first attempted to do this).  Our setup will handle encrytion into the database, and dropping the information for __GET__ requests, easily and automatically.
 5. Lesson 4 - Transformers: Back in Lesson 2, we introduced databases.  And databases require connections, which we've been passing function to function.  This complicates function calls, however, and ensures that the entire codebase has to agree on how precisely we connect to the database.  Wouldn't it be nice to write modular code, which keeps such tasks from infecting all of our components?  Using transformers, we can!
+6. Lesson 5 - Connection Pooling: We've theaded a database connection through our project, but it would be more efficient to pool them so that we can start up and tear down connections as needed, without having to worry about the specifics of resource management.  Using the abstractions we've already built up, and practicing our monad-wrangling skills a bit more, we can easily add in a resource pool in place of our single connection.
+
 
 ## Future Sections
 
 The next few sections under development are:
 
-6. Lesson 5 - Connection Pooling.  Can we avoid making so many connections to the database?
-7. Lesson 6 - Testing.
-8. Lesson 7 - Logging
+7. Lesson 6 - Logging.
+8. Lesson 7 - Testing.
 
 ## Assumptions
 
