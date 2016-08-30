@@ -58,7 +58,7 @@ compareUsers (Just dbUser) userAttempt = verifyPassword (BS.pack . userPassword 
 
 ## Step 4: Update User API
 
-Time to change our "Api/User.hs" file.  We'll be running encryption when we __POST__ a new user, so that's the function which will need to be updated.  Now, we're already working within the `AppM` monad; that is, `EitherT ServantErr IO`, and it can handle `IO` just fine.  (Which is good, since we've been using plenty of `IO` when running database queries.)  To slip in the encryption step:
+Time to change our "Api/User.hs" file.  We'll be running encryption when we __POST__ a new user, so that's the function which will need to be updated.  Now, we're already working within the `AppM` monad; that is, `ExceptT ServantErr IO`, and it can handle `IO` just fine.  (Which is good, since we've been using plenty of `IO` when running database queries.)  To slip in the encryption step:
 ```haskell
 postUser :: PGS.Connection -> UserWrite -> AppM Int64
 postUser con user = do newUser <- liftIO $ userToPG user
