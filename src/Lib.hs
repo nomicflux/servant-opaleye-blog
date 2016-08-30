@@ -10,7 +10,7 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
 import Control.Monad.Trans.Reader (runReaderT)
-import Control.Monad.Trans.Either (EitherT)
+import Control.Monad.Trans.Except (ExceptT)
 import Control.Monad.IO.Class (liftIO)
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -24,8 +24,8 @@ type API = "users" :> UserAPI
 startApp :: IO ()
 startApp = run 8080 app
 
-readerTToEither :: AppM :~> EitherT ServantErr IO
-readerTToEither = Nat (\r -> do con <- liftIO $ PGS.connect PGS.defaultConnectInfo
+readerTToExcept :: AppM :~> ExceptT ServantErr IO
+readerTToExcept = Nat (\r -> do con <- liftIO $ PGS.connect PGS.defaultConnectInfo
                                                               { PGS.connectUser = "blogtutorial"
                                                               , PGS.connectPassword = "blogtutorial"
                                                               , PGS.connectDatabase = "blogtutorial"
@@ -33,7 +33,7 @@ readerTToEither = Nat (\r -> do con <- liftIO $ PGS.connect PGS.defaultConnectIn
                                 runReaderT r con)
 
 app :: Application
-app = serve api $ enter readerTToEither server
+app = serve api $ enter readerTToExcept server
 
 api :: Proxy API
 api = Proxy

@@ -16,22 +16,22 @@ import Database.PostgreSQL.Simple (Connection)
 
 And this is the reason why we created it:
 ```haskell
-type AppM = ReaderT Connection (EitherT ServantErr IO)
+type AppM = ReaderT Connection (ExceptT ServantErr IO)
 ```
 All we do is revise our definition of `AppM`, and most of our heavy lifting work is done.  Everything is already set up to use `AppM`.
 
 ## Step 2: Update Lib.hs
 
-We'll need to do a little work in Lib.hs as well.  Servant knows how to use `EitherT ServantErr IO`; it doesn't know what to do with our new `AppM`.
+We'll need to do a little work in Lib.hs as well.  Servant knows how to use `ExceptT ServantErr IO`; it doesn't know what to do with our new `AppM`.
 
-Before we get to the code, let's think about what `AppM` could be.  (I know I gave a solution already; forget that for a moment.)  On the one hand, carrying configuration around with us strongly suggests using `Reader` or `ReaderT`.  However, we need to get back to `EitherT ServantErr IO` through a *natural transformation* (the Servant tutorial has more information on that [here](https://haskell-servant.github.io/tutorial/server.html#using-another-monad-for-your-handlers); in short, instead of transforming our data directly, like with a Functor, with want a way to transform the transformation of data.  We've got a monad of some sort, most likely a `ReaderT Connection a b` where `a` and `b` are something else, and we need to get that to `EitherT ServantErr IO b`, without really playing around with `b`.)
+Before we get to the code, let's think about what `AppM` could be.  (I know I gave a solution already; forget that for a moment.)  On the one hand, carrying configuration around with us strongly suggests using `Reader` or `ReaderT`.  However, we need to get back to `ExceptT ServantErr IO` through a *natural transformation* (the Servant tutorial has more information on that [here](https://haskell-servant.github.io/tutorial/server.html#using-another-monad-for-your-handlers); in short, instead of transforming our data directly, like with a Functor, with want a way to transform the transformation of data.  We've got a monad of some sort, most likely a `ReaderT Connection a b` where `a` and `b` are something else, and we need to get that to `ExceptT ServantErr IO b`, without really playing around with `b`.)
 
-Maybe there are several ways of doing this.  But a very simple one is to choose `ReaderT Connection (EitherT ServantErr IO)`.  We take connection information from the monad transformer, and apply the transform step of `ReaderT` to get exactly what we wanted: `EitherT ServantErr IO`.  The complicated type signature is really the simplest processing we could do.
+Maybe there are several ways of doing this.  But a very simple one is to choose `ReaderT Connection (ExceptT ServantErr IO)`.  We take connection information from the monad transformer, and apply the transform step of `ReaderT` to get exactly what we wanted: `ExceptT ServantErr IO`.  The complicated type signature is really the simplest processing we could do.
 
 The code to carry out this transformation is the following:
 ```haskell
-readerTToEither :: AppM :~> EitherT ServantErr IO
-readerTToEither = Nat (\r -> do con <- liftIO $ PGS.connect PGS.defaultConnectInfo
+readerTToExcept :: AppM :~> ExceptT ServantErr IO
+readerTToExcept = Nat (\r -> do con <- liftIO $ PGS.connect PGS.defaultConnectInfo
                                                               { PGS.connectUser = "blogtutorial"
                                                               , PGS.connectPassword = "blogtutorial"
                                                               , PGS.connectDatabase = "blogtutorial"
@@ -48,7 +48,7 @@ server = userServer
 And we'll need to actually run the transformation:
 ```haskell
 app :: Application
-app = serve api $ enter readerTToEither server
+app = serve api $ enter readerTToExcept server
 ```
 
 Finally, since the database connection information is sent in with the `ReaderT` transformer, we no longer need to add it in to `startApp`:
