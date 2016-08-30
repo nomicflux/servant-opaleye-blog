@@ -6,7 +6,7 @@ Note: The setup I have for separating out files and folders is purely my own.  I
 
 ## Step 1: Create App.hs
 
-This is the file where I put basic information for the entire application.  For example, I get tired of typing `EitherT ServantErr IO` all of the time, so I've created a type alias `AppM` instead.  Once we get to Lesson 4, we'll see that this setup will greatly ease our transition into more complex transformers.
+This is the file where I put basic information for the entire application.  For example, I get tired of typing `ExceptT ServantErr IO` all of the time, so I've created a type alias `AppM` instead.  Once we get to Lesson 4, we'll see that this setup will greatly ease our transition into more complex transformers.
 
 Similarly, I've created typealiases for `BlogPostId` and `Email` as well.  In theory, the rest of the code should just have to know that it is dealing with *emails* and *ids*, and not worry about the underlying representation.  It is, of course, more complicated than that, since we'll also have to connect up Haskell's representation with the database and with JSON inputs, but this is a start toward full modularity.
 
@@ -95,7 +95,7 @@ getUserByEmail email = return $ listToMaybe $ filter ((== email) . userEmail) us
 postUser :: User -> AppM [User]
 postUser user = return $ users ++ [user]
 ```
-As you'll notice, we are using `AppM` in our return value.  This was defined in App.hs as `EitherT ServantErr IO`.  If you wanted to, you could type that in directly, and end up with type signatures such as `User -> EitherT ServantErr IO [User]`.  But, a) that is a pain to read and type, and b) we'll be changing it in a future lesson, so abstracting the type out to `AppM` now will save time.
+As you'll notice, we are using `AppM` in our return value.  This was defined in App.hs as `ExceptT ServantErr IO`.  If you wanted to, you could type that in directly, and end up with type signatures such as `User -> ExceptT ServantErr IO [User]`.  But, a) that is a pain to read and type, and b) we'll be changing it in a future lesson, so abstracting the type out to `AppM` now will save time.
 
 ## Step 4: Set up BlogPost API
 
