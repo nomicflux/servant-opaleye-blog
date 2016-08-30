@@ -4,8 +4,6 @@ Abstractions in disguise.  In Lesson 2, we added a bunch of database connection 
 
 Fear no more: by using the power of Monad Transformers, we'll be able to tuck away all of our connection info in a tidy way.  Furthermore, this will apply to any sort of configuration information you may want to pass along; perhaps environment variables, or portions of your server which you want to keep highly configurable.
 
-In this lesson, we'll work with `ReaderT`, as that provides the simplest monad transformer for our purposes.  In a later lesson, we'll find a more efficient approach.
-
 ## Step 1: Update App.hs
 
 Let's go back to App.hs.  Add in the following imports:
@@ -30,31 +28,23 @@ Maybe there are several ways of doing this.  But a very simple one is to choose 
 
 The code to carry out this transformation is the following:
 ```haskell
-readerTToExcept :: AppM :~> ExceptT ServantErr IO
-readerTToExcept = Nat (\r -> do con <- liftIO $ PGS.connect PGS.defaultConnectInfo
-                                                              { PGS.connectUser = "blogtutorial"
-                                                              , PGS.connectPassword = "blogtutorial"
-                                                              , PGS.connectDatabase = "blogtutorial"
-                                                              }
-                                runReaderT r con)
+readerTToExcept :: PGS.Connection -> AppM :~> ExceptT ServantErr IO
+readerTToExcept con = Nat (\r -> runReaderT r con)
 ```
 
-We'll need to make two other changes to accomodate this is Lib.hs.  First, `server` is now a `ServerT API AppM` instead of a `Server API`:
+We pass in the `con` in order to avoid reconnecting every time we convert between the representations of the server.  In the next lesson, we'll alter this to use a connection pool.
+
+We'll need to make two other changes to accomodate this is Lib.hs.  First, `server` is now a `ServerT API AppM` instead of a `Server API`.  We can also remove the explicit call to `con`, as that will be snuck it through the `ReaderT` monad:
 ```haskell
 server :: ServerT API AppM
 server = userServer
     :<|> blogPostServer
 ```
-And we'll need to actually run the transformation:
-```haskell
-app :: Application
-app = serve api $ enter readerTToExcept server
-```
 
-Finally, since the database connection information is sent in with the `ReaderT` transformer, we no longer need to add it in to `startApp`:
+And we'll need to actually run the transformation, which just requires a call to the Servant function `enter`:
 ```haskell
-startApp :: IO ()
-startApp = run 8080 app
+app :: PGS.Connection -> Application
+app con = serve api $ enter (readerTToExcept con) server
 ```
 
 ## Step 3: Ask, Don't Argue

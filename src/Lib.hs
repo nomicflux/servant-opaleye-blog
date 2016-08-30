@@ -22,18 +22,19 @@ type API = "users" :> UserAPI
       :<|> "posts" :> BlogPostAPI
 
 startApp :: IO ()
-startApp = run 8080 app
+startApp = do
+  con <- liftIO $ PGS.connect PGS.defaultConnectInfo
+         { PGS.connectUser = "blogtutorial"
+         , PGS.connectPassword = "blogtutorial"
+         , PGS.connectDatabase = "blogtutorial"
+         }
+  run 8080 (app con)
 
-readerTToExcept :: AppM :~> ExceptT ServantErr IO
-readerTToExcept = Nat (\r -> do con <- liftIO $ PGS.connect PGS.defaultConnectInfo
-                                                              { PGS.connectUser = "blogtutorial"
-                                                              , PGS.connectPassword = "blogtutorial"
-                                                              , PGS.connectDatabase = "blogtutorial"
-                                                              }
-                                runReaderT r con)
+readerTToExcept :: PGS.Connection -> AppM :~> ExceptT ServantErr IO
+readerTToExcept con = Nat (\r -> runReaderT r con)
 
-app :: Application
-app = serve api $ enter readerTToExcept server
+app :: PGS.Connection -> Application
+app con = serve api $ enter (readerTToExcept con) server
 
 api :: Proxy API
 api = Proxy
