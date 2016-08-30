@@ -1,86 +1,92 @@
-# Lesson 4 - Transformers
+# Lesson 5 - Connection Pool and Logging
 
-Abstractions in disguise.  In Lesson 2, we added a bunch of database connection information.  Now, we need that, or we can't connect to a database, which defeats the purpose of all of that Opaleye work we did.  However, we now have to thread all of that connection information around to the entire program.  That may not be too terrible, but it does require that every single file which uses database connections at all will need to depend on `Database.PostgreSQL.Simple`.  What would happen if we used a different method of connecting to the database?  Is there any way of ensuring that everything will have proper dependecies without us having to manually type them in for every function?  We are Haskell programmers, after all; abstracting away redundancy and automating dependencies is what we are about.
+We've added a database connection, but we only have one at the moment.  We'll want to set up a `Pool` to manage multiple connections - opening new ones as necessary and closing old ones as they become idle.  I'm going to use [resource-pool](https://hackage.haskell.org/package/resource-pool-0.2.3.2/docs/Data-Pool.html) to manage our pool - you may prefer another method.
 
-Fear no more: by using the power of Monad Transformers, we'll be able to tuck away all of our connection info in a tidy way.  Furthermore, this will apply to any sort of configuration information you may want to pass along; perhaps environment variables, or portions of your server which you want to keep highly configurable.
+## Setting up Pools in Lib.hs
 
-## Step 1: Update App.hs
-
-Let's go back to App.hs.  Add in the following imports:
+The function to create a pool is:
 ```haskell
-import Control.Monad.Trans.Reader (ReaderT)
-import Database.PostgreSQL.Simple (Connection)
+Data.Pool.createPool :: (IO a) -> (a -> IO ()) -> Int -> NominalDiffTime -> Int -> IO (Pool a)
 ```
 
-And this is the reason why we created it:
+Let's break this down.  `createPool` takes:
+
+1. A function to create a connection, of the form `IO a`.
+2. A function to tear down a connectio, of the form `(a -> IO())`.
+3. Additional parameters for the number of sub-pools (`Int`), the time before idling out (`NominalDiffTime`, which is a member of the `Num` typeclass which means that we can specify it with a number), and the maximum number of resources to keep open in each subpool (`Int`).
+
+And it returns a `Pool` for whatever `a` we want, wrapped in the `IO` monad.
+
+In this lesson, let's work backward a bit, specifying what we want first and filling out the details afterward.  To start this pool, we'll run:
 ```haskell
-type AppM = ReaderT Connection (ExceptT ServantErr IO)
-```
-All we do is revise our definition of `AppM`, and most of our heavy lifting work is done.  Everything is already set up to use `AppM`.
-
-## Step 2: Update Lib.hs
-
-We'll need to do a little work in Lib.hs as well.  Servant knows how to use `ExceptT ServantErr IO`; it doesn't know what to do with our new `AppM`.
-
-Before we get to the code, let's think about what `AppM` could be.  (I know I gave a solution already; forget that for a moment.)  On the one hand, carrying configuration around with us strongly suggests using `Reader` or `ReaderT`.  However, we need to get back to `ExceptT ServantErr IO` through a *natural transformation* (the Servant tutorial has more information on that [here](https://haskell-servant.github.io/tutorial/server.html#using-another-monad-for-your-handlers); in short, instead of transforming our data directly, like with a Functor, with want a way to transform the transformation of data.  We've got a monad of some sort, most likely a `ReaderT Connection a b` where `a` and `b` are something else, and we need to get that to `ExceptT ServantErr IO b`, without really playing around with `b`.)
-
-Maybe there are several ways of doing this.  But a very simple one is to choose `ReaderT Connection (ExceptT ServantErr IO)`.  We take connection information from the monad transformer, and apply the transform step of `ReaderT` to get exactly what we wanted: `ExceptT ServantErr IO`.  The complicated type signature is really the simplest processing we could do.
-
-The code to carry out this transformation is the following:
-```haskell
-readerTToExcept :: PGS.Connection -> AppM :~> ExceptT ServantErr IO
-readerTToExcept con = Nat (\r -> runReaderT r con)
+startApp :: IO ()
+startApp = do
+  pool <- Pool.createPool openConnection PGS.close 1 10 5
+  run 8080 (app pool)
 ```
 
-We pass in the `con` in order to avoid reconnecting every time we convert between the representations of the server.  In the next lesson, we'll alter this to use a connection pool.
+We'll pass the pool into the server just as we had passed the connection previously.  `Database.PostgreSQL.Simple` closes connections with the appropriately named `close` function, and we're supplying the parameters `1 10 5` for the other arguments (you can choose whatever ones you want instead, if you don't like them).
 
-We'll need to make two other changes to accomodate this is Lib.hs.  First, `server` is now a `ServerT API AppM` instead of a `Server API`.  We can also remove the explicit call to `con`, as that will be snuck it through the `ReaderT` monad:
+The only thing left is the `openConnection` function.  The type is going to be whatever `a` we want a `Pool` of - which will be `PGS.Connection`.  From there, we can simply cut-and-paste the connection code we were using previously:
 ```haskell
-server :: ServerT API AppM
-server = userServer
-    :<|> blogPostServer
+openConnection :: IO PGS.Connection
+openConnection = PGS.connect PGS.defaultConnectInfo
+                 { PGS.connectUser = "blogtutorial"
+                 , PGS.connectPassword = "blogtutorial"
+                 , PGS.connectDatabase = "blogtutorial"
+                 }
 ```
 
-And we'll need to actually run the transformation, which just requires a call to the Servant function `enter`:
+Lastly, let's change some type signatures to reflect the pass that we're now passing a `Pool` through instead of a `Connection`:
 ```haskell
-app :: PGS.Connection -> Application
-app con = serve api $ enter (readerTToExcept con) server
+readerTToExcept :: Pool.Pool PGS.Connection -> AppM :~> ExceptT ServantErr IO
+readerTToExcept pool = Nat (\r -> runReaderT r pool)
+
+app :: Pool.Pool PGS.Connection -> Application
+app pool = serve api $ enter (readerTToExcept pool) server
 ```
 
-## Step 3: Ask, Don't Argue
+## Returning a Connection
 
-Now that we've done that, let's go back to our API files.  As usual, I'll go through Api/User.hs, then suggest Api/BlogPost.hs as an exercise.
+If you're looking at the code, you'll see that I use `DBPool` instead of `Pool.Pool PGS.Connection` - after typing out the longer form for a few functions coming up, I made a `type` alias for the combination.  But it compiles to the exact same thing.
 
-There are two main steps here.  First, we need to remove all of our references to "PGS.Connection" and the resulting `con` argument.
-
-However, we still need that connection.  So instead, we'll `ask` for it, and receive it from the `AppM` monad we're working within.
+So while we're on that topic, let's move over to App.hs and add the alias:
 ```haskell
-getUsers :: AppM [UserRead]
-getUsers = do con <- ask
-              liftIO $ runQuery con usersQuery
-
-getUserByEmail :: Email -> AppM (Maybe UserRead)
-getUserByEmail email = do con <- ask
-                          liftIO $ listToMaybe <$> runQuery con (userByEmailQuery email)
-
-verifyUser :: UserWrite -> AppM Bool
-verifyUser user = do con <- ask
-                     dbUser <- getUserByEmail (userEmail user)
-                     return $ compareUsers dbUser user
-
-postUser :: UserWrite -> AppM Int64
-postUser user = do con <- ask
-                   newUser <- liftIO $ userToPG user
-                   liftIO $ runInsert con userTable newUser
+type DBPool = Pool Connection
 ```
-This is little work at this point, since we already have most of the code set up to use monads and database connections.  However, you might be wondering whether this is all busy work; we just moved the `con` from an argument to `con <- ask`, so what have we gained?
 
-Three things: first, we no longer have to worry about the type of `con`.  It's no longer part of a type signature; as long as we use something Opaleye can play nice with, our API doesn't need to care.  Second, we can much more easily change whether a given function relies on a database connection or not.  Instead of going back and making sure that the connection is passed in properly as an argument every step of the way, we can just ask for it when we need it, and not ask if we don't.
+Also, our `AppM` no longer returns a `Connection`, so let's update that:
+```haskell
+type AppM = ReaderT DBPool (ExceptT ServantErr IO)
+```
 
-Third, this sets us up nicely for other information we might need through a `ReaderT` monad.  If you want to read off environment variables for some reason, that would be relatively easy to add at this point.
+Finally, we'll want a way to grab a `Connection` from the `Pool` while working in the API files.  However, remember all that work we went through in Lesson 4 to abstract away details of our database connections?  We don't want to undo that, do we?  So we'll write a function in App.hs which will handle grabbing a function from the `Pool`:
+```haskell
+getConn :: DBPool -> AppM Connection
+getConn pool = withResource pool return
+```
 
-And yes, go back and change Api/BlogPost.hs accordingly.
+Given a pool (supplied by the `ReaderT` portion of `AppM`), we can return a `Connection` within a monad.  `withResource` takes a pool and a monadic action (the type is `Pool a -> (a -> m b) -> m b`) and returns something in a monad.  Since our API logic will be in the `AppM` monad, we'll use that in the type signature.
 
-## Step 4: Update Cabal
+If you weren't sure what monad to use, you could just rest on the flexibility of the `return` function to provide the correct one.  Delete or comment out the type signature, add the `{-# LANGUAGE FlexibleContexts #-}` pragma when GHC yells at you to do so, and the compiler will figure out what you need.
 
-Update dependencies, build, exec, curl.  Profit.
+## Changing the API
+
+We've already done almost all the work.  The problem left is that Api.User and Api.BlogPost had been accustomed to calling `ask` and receiving a `Connection`.  Now, when they try, they'll get a `DBPool` instead.
+
+But we also have this nice function we just made, `getConn`, which can take a `DBPool` and return an `AppM Connection`.  All we have to do is figure out how to wrangle the monads.
+
+`ask` has the type `ReaderT r m r` - it returns a monadic value in the `ReaderT` monad transformer (and remember, `AppM` is really `ReaderT DBPool (ExceptT ServantErr IO)`, so it is a `ReaderT`).  How do we take a monadic value out of the monad?  Use `do`:
+```haskell
+do pool <- ask
+   con <- getConn pool
+   ...
+```
+
+`getConn pool` is also within a monad, so we have to extract it as well.  But with that, we are done.  We can even clean this up a bit, removing an extra line and a temporary variable:
+```haskell
+do con <- ask >>= getConn
+```
+Any time you see a variable in a `do` block which is only there to chain monadic steps together, you can cut it out and just use bind `>>=`.
+
+Repeat this and change every instance of `con <- ask` to `con <- ask >>= getConn`, and we're done.  `stack build` it and run it.

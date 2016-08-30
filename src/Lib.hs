@@ -13,28 +13,32 @@ import Control.Monad.Trans.Reader (runReaderT)
 import Control.Monad.Trans.Except (ExceptT)
 import Control.Monad.IO.Class (liftIO)
 import qualified Database.PostgreSQL.Simple as PGS
+import qualified Data.Pool as Pool
 
-import App
+import App (DBPool, AppM)
 import Api.User
 import Api.BlogPost
 
 type API = "users" :> UserAPI
       :<|> "posts" :> BlogPostAPI
 
+openConnection :: IO PGS.Connection
+openConnection = PGS.connect PGS.defaultConnectInfo
+                 { PGS.connectUser = "blogtutorial"
+                 , PGS.connectPassword = "blogtutorial"
+                 , PGS.connectDatabase = "blogtutorial"
+                 }
+
 startApp :: IO ()
 startApp = do
-  con <- liftIO $ PGS.connect PGS.defaultConnectInfo
-         { PGS.connectUser = "blogtutorial"
-         , PGS.connectPassword = "blogtutorial"
-         , PGS.connectDatabase = "blogtutorial"
-         }
-  run 8080 (app con)
+  pool <- Pool.createPool openConnection PGS.close 1 10 5
+  run 8080 (app pool)
 
-readerTToExcept :: PGS.Connection -> AppM :~> ExceptT ServantErr IO
-readerTToExcept con = Nat (\r -> runReaderT r con)
+readerTToExcept :: DBPool -> AppM :~> ExceptT ServantErr IO
+readerTToExcept pool = Nat (\r -> runReaderT r pool)
 
-app :: PGS.Connection -> Application
-app con = serve api $ enter (readerTToExcept con) server
+app :: DBPool -> Application
+app pool = serve api $ enter (readerTToExcept pool) server
 
 api :: Proxy API
 api = Proxy

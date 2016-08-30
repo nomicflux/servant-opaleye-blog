@@ -29,17 +29,17 @@ blogPostServer = getPosts
             :<|> postPost
 
 getPosts :: AppM [BlogPostRead]
-getPosts = do con <- ask
+getPosts = do con <- ask >>= getConn
               liftIO $ runQuery con blogPostsQuery
 
 getPostById :: BlogPostID -> AppM (Maybe BlogPostRead)
-getPostById postID = do con <- ask
+getPostById postID = do con <- ask >>= getConn
                         liftIO $ listToMaybe <$> runQuery con (blogPostByIdQuery postID)
 
 getPostsByEmail :: Email -> AppM [BlogPostRead]
-getPostsByEmail email = do con <- ask
+getPostsByEmail email = do con <- ask >>= getConn
                            liftIO $ runQuery con (blogPostsByEmailQuery email)
 
 postPost :: BlogPostWrite -> AppM Int64
-postPost post = do con <- ask
+postPost post = do con <- ask >>= getConn
                    liftIO $ runInsert con blogPostTable $ blogPostToPG post
