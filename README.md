@@ -31,7 +31,7 @@ Make sure that the password is a *BYTEA*, as we'll be storing binary data for th
 
 Next, we'll make some adjustments to our API files from Lesson 1.  There, we mixed together the API and the data definitions.  But we'll want to use those data definitions in multiple places: when connecting to our database, when composing queries, when accessing the API, and so on.  We don't want to make everything depend on everything else, so let's place our models in a separate folder.  Create a "src/Models" directory.  We'll start with Models/User.hs.
 
-While we're on the subject, we'll also split out our queries into their own folder: "src/Queries".  Query files and API files alike will rely on Model files, but Queries and APIs will have no reliance on each other.
+While we're at it, we'll also split out our queries into their own folder: "src/Queries".  Query files and API files alike will rely on Model files, but Queries and APIs will have no reliance on each other.
 
 ## Step 3: Create the User Model
 
@@ -48,11 +48,11 @@ data User' email pwd = User
 
 Letting `email` and `pwd` be open to any type may seem somewhat odd.  Why go to the trouble of setting up datatypes in a typesafe language, only to throw them away and let someone instantiate a `User'` with any two types they want?
 
-And this is indeed a bit odd.  Ideally, things like this can be taken care of in the future with dependent types and other deep magicks.  But for the moment, this polymorphic type lets us treat the Opaleye definition of a `User`, and our normal Haskell definition of a `User`, as the same sort of object.  This is even though Opaleye's types need to play nice with Postgres, while the rest of our logic really shouldn't have to think about Postgres at all.  And later, we'll set up separate read and write types as well.
+And this is indeed a bit odd.  Ideally, this can be taken care of in the future with dependent types and other deep magicks.  But for the moment, a polymorphic type lets us treat the Opaleye definition of a `User` and our normal Haskell definition of a `User`, as the same sort of object.  Opaleye's types need to play nice with Postgres, while the rest of our logic really shouldn't have to think about Postgres at all, but nevertheless they can come together in this one type.  Later, we'll set up separate read and write types as well.
 
 Confused?  If not, you're a genius; pat yourself on the back.  For you mere mortals, just follow along, and hopefully by the end of this lesson you'll have some understading of this craziness, at least enough to use it for your own projects.
 
-Ok, so we've set up the `User'` datatype.  Let's make the concrete instances which we'll actually use:
+So now we've set up the `User'` datatype.  Let's make the concrete instances which we'll actually use:
 ```haskell
 type User = User' Email ByteString
 type UserColumn = User' (Column PGText) (Column PGBytea)
@@ -74,7 +74,7 @@ The magic, however, happens with the following:
 ```haskell
 $(makeAdaptorAndInstance "pUser" ''User')
 ```
-If you are unfamiliar with the `$(...)` syntax, this is an example of *TemplateHaskell*.  Don't worry too much about it; the main point is that we are creating something called a __product profunctor__.  Like many Haskell terms, this is technobabble for a relatively simple and useful concept.  Let's say that I have a pair of things: `('hello', 1)`.  I want to create a function which will take the first element, a string, and convert it to uppercase.  I also want it to take the second element, an integer, and increment it.  So I should be able to type `pairFunc ('hello', 1)` and end up with `('HELLO', 2)`.
+If you are unfamiliar with the `$(...)` syntax, this is an example of *TemplateHaskell*.  Don't worry too much about it; the main point is that we are creating something called a __product profunctor__.  Like many Haskell terms, this is technobabble for a relatively simple and useful concept.  Let's say that I have a pair of things: `('hello', 1)`.  I want to create a function which will take the first element, a string, and convert it to uppercase.  I also want my function to take the second element, an integer, and increment it.  So I should be able to type `pairFunc ('hello', 1)` and end up with `('HELLO', 2)`.
 
 I can create such a function like this:
 ```haskell
@@ -82,7 +82,7 @@ pairFunc = p2 (map toUpper, (+1))
 ```
 In other words, `p2` takes a pair of functions, and converts them to a function acting on a pair.
 
-This is kind of nice, but it involves importing a library and learning a new syntax for something which wouldn't be too hard to program otherwise.  However, in our case, we get another benefit: the product profunctor we created, `pUser`, is defined for our polymorphic type `User'`.  This means that we can apply `pUser` to Opaleye's types or to our own code's types, and forget about the distinction to an extent.
+This is kind of nice, but it involves importing a library and learning a new syntax for something which wouldn't be too hard to program otherwise.  However, in our case, we get another benefit: the product profunctor we created, `pUser`, is defined for our polymorphic type `User'`.  This means that we can apply `pUser` to Opaleye's types or to our own code's types, and forget about the distinction.
 
 If you feel that this is all a little much, however, you can ignore profunctors and do everything manually.  I have included them because everything in the Opaleye tutorials uses them, so it pays to understand what they mean if you want to look into anything more advanced.
 
@@ -107,7 +107,7 @@ userTable' :: Table UserColumn UserColumn
 userTable' = Table "users" userTransform
 ```
 
-As long as we're setting up the table, we'll also create a helper function to converting our datatype into an Opaleye-Postgres format:
+As long as we're setting up the table, we'll also create a helper function to convert our datatype into an Opaleye-Postgres format:
 ```haskell
 userToPG :: User -> UserColumn
 userToPG = pUser User { userEmail = pgString
@@ -170,7 +170,7 @@ data BlogPost' id title body email time = BlogPost
 
 This is where we'll differ from the `User` model.  With a `User`, we read and write the same things; conversion to JSON will remove a `userPassword` field, but we don't need to be concerned with that for types.
 
-For blog posts, we are doing two things differently.  First, we have Postgres automatically assign a serial ID; this means that we don't need users to __POST__ an ID when submitting a blog post (and would prefer that they did not).  Second, each post has a timestamp, which is also automatically generated and does not have to been included when we __POST__ posts and ship them off to the database.
+For blog posts, we do two things differently.  First, we have Postgres automatically assign a serial ID; this means that we don't need users to __POST__ an ID when submitting a blog post (and would prefer that they did not).  Second, each post has a timestamp, which is also automatically generated and does not have to been included when we __POST__ posts and ship them off to the database.
 
 So we'll need four different concrete types: reading from the database, writing to the database, reading from JSON, and writing to JSON.  This is a lot, but it is all straightforward:
 ```haskell
@@ -188,7 +188,7 @@ type BPColumnWrite = BlogPost' (Maybe (Column PGInt8))
                                (Maybe (Column PGTimestamptz))
 ```
 
-We'll also update the `FromJSON` instance to reflect the fact that two of the fields are optional:
+We'll also update the `FromJSON` instance to reflect the fact that two of the fields are optional, using `.:?` instead of `.:`:
 ```haskell
 instance FromJSON BlogPostWrite where
   parseJSON (Object o) = BlogPost <$>
