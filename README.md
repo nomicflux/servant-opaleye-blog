@@ -2,7 +2,7 @@
 
 We've added a database connection, but we only have the one at the moment.  We'll want to set up a `Pool` to manage multiple connections - opening new ones as necessary and closing old ones as they become idle.  I'm going to use [resource-pool](https://hackage.haskell.org/package/resource-pool-0.2.3.2/docs/Data-Pool.html) to manage our pool - you may prefer another method.
 
-## Setting up Pools in Lib.hs
+## Step 1: Setting up Pools in Lib.hs
 
 The function to create a pool is:
 ```haskell
@@ -46,7 +46,7 @@ app :: Pool.Pool PGS.Connection -> Application
 app pool = serve api $ enter (readerTToExcept pool) server
 ```
 
-## Returning a Connection
+## Step 2: Returning a Connection
 
 If you're looking at the code, you'll see that I use `DBPool` instead of `Pool.Pool PGS.Connection` - after typing out the longer form for a couple functions coming up, I made a `type` alias for the combination.  But it compiles to the exact same thing.
 
@@ -70,7 +70,7 @@ Given a pool (supplied by the `ReaderT` portion of `AppM`), we can return a `Con
 
 If you weren't sure what monad to use, you could just rest on the flexibility of the `return` function to provide the correct one.  Delete or comment out the type signature, add the `{-# LANGUAGE FlexibleContexts #-}` pragma when GHC yells at you to do so, and the compiler will figure out what you need.
 
-## Changing the API
+## Step 3: Changing the API
 
 We've already done almost all the work.  The problem left is that Api.User and Api.BlogPost had been accustomed to calling `ask` and receiving a `Connection`.  Now, when they try, they'll get a `DBPool` instead.
 
