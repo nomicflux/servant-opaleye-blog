@@ -1,4 +1,4 @@
-# Lesson 5 - Connection Pool and Logging
+# Lesson 5 - Connection Pool
 
 We've added a database connection, but we only have the one at the moment.  We'll want to set up a `Pool` to manage multiple connections - opening new ones as necessary and closing old ones as they become idle.  I'm going to use [resource-pool](https://hackage.haskell.org/package/resource-pool-0.2.3.2/docs/Data-Pool.html) to manage our pool - you may prefer another method.
 
