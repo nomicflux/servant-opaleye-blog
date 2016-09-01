@@ -33,7 +33,8 @@ Here are the various branches:
 The next few sections under development are:
 
 7. Lesson 6 - Logging.
-8. Lesson 7 - Testing.
+8. Lesson 7 - Environment Variables and File Handles.
+9. Lesson 8 - Testing.
 
 ## Assumptions
 
