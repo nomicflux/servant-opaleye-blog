@@ -112,6 +112,21 @@ getPosts = do con <- getConn
 ```
 (Again, remember to add `OverloadedStrings` if you want to log messages using plain strings.)
 
-## Step 5: Dependencies and Run
+## Step 5: Changing Formatting
+
+If you played around with `logStdout` and `logStdoutDev` at all, you saw that `logStdoutDev` prints out pretty colors in a nicely formatted way while `logStdout` just gives a plain line of text, Apache-style.  If you've played around further and tried to put the formatted text into a file, you saw that it is pretty much unreadable.  So the last thing to see before closing out this lesson is how to change the format of the logger:
+```haskell
+startApp = do
+  pool <- Pool.createPool openConnection PGS.close 1 10 5
+  logger <- newFileLoggerSet "log.txt" defaultBufSize
+  midware <- mkRequestLogger $ def { destination = Logger logger, outputFormat = Apache FromSocket }
+  pushLogStrLn logger "Hello World"
+  run 8080 $ midware $ app (Config pool logger)
+```
+You can also specify your own format with `CustomOutputFormat OutputFormatter` and `CustomOutputFormatWithDetails OutputFormatterWithDetails` if you feel like it (the hackage page has information on how to set those up), but `Apache FromSocket` does just fine to give us the straight, unformatted facts.
+
+## Step 6: Dependencies and Run
 
 This step added quite a few dependencies to the .cabal file and to imports (just for Lib.hs and App.hs).  If you worked through these examples yourself instead of cloning the repository, give those files a look to make sure that you've included everything you need.  Then, build and exec and enjoy chatting with your server!
+
+We've covered multiple ways to log information, whether including a logger in `AppM` or just running one as `Middleware`, logging to `stdout` or to a file, and how we might format a logger.  We don't want to have to recompile every time we decide to run our server differently, though.  So the next lesson will use environment variables to control how we log, as well as other details such as the port we run on.
