@@ -35,6 +35,7 @@ The next few sections under development are:
 
 8. Lesson 7 - Environment Variables.
 9. Lesson 8 - Testing.
+10. Lesson 9 - Depolyment.
 
 ## Assumptions
 
