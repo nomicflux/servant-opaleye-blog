@@ -26,14 +26,14 @@ Here are the various branches:
 4. Lesson 3 - Encryption: Passwords are tricky business.  Even a tutorial shouldn't have you storing passwords in plaintext.  However, Haskell throws a wrench into the works: we'll have to deal with __IO__ to work with encryption.  It turns out this is simpler than it might sound (and much simpler than I myself had feared when I first attempted to do this).  Our setup will handle encrytion into the database, and dropping the information for __GET__ requests, easily and automatically.
 5. Lesson 4 - Transformers: Back in Lesson 2, we introduced databases.  And databases require connections, which we've been passing function to function.  This complicates function calls, however, and ensures that the entire codebase has to agree on how precisely we connect to the database.  Wouldn't it be nice to write modular code, which keeps such tasks from infecting all of our components?  Using transformers, we can!
 6. Lesson 5 - Connection Pooling: We've theaded a database connection through our project, but it would be more efficient to pool them so that we can start up and tear down connections as needed, without having to worry about the specifics of resource management.  Using the abstractions we've already built up, and practicing our monad-wrangling skills a bit more, we can easily add in a resource pool in place of our single connection.
+7. Lesson 6 - Logging: Building off of the added configuration info we used for connection pooling, we'll add a logger.  This logger can both be used to log our own messages throughout the application as needed, and to automatically log server messages.  We'll also go through some alternatives, such as logging to a file, and setting up a one-step logger which doesn't require any changes to our current datatypes.
 
 
 ## Future Sections
 
 The next few sections under development are:
 
-7. Lesson 6 - Logging.
-8. Lesson 7 - Environment Variables and File Handles.
+8. Lesson 7 - Environment Variables.
 9. Lesson 8 - Testing.
 
 ## Assumptions
