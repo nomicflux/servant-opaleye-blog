@@ -36,6 +36,9 @@ library
                      , transformers
                      , pwstore-fast
                      , resource-pool
+                     , wai-extra
+                     , fast-logger
+                     , data-default-class
   default-language:    Haskell2010
 
 executable blog-tutorial-exe

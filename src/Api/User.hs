@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Api.User where
 
@@ -30,6 +31,7 @@ userServer = getUsers
 
 getUsers :: AppM [UserRead]
 getUsers = do con <- getConn
+              addToLogger "I got Users!"
               liftIO $ runQuery con usersQuery
 
 getUserByEmail :: Email -> AppM (Maybe UserRead)

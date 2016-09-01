@@ -1,4 +1,4 @@
-
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TypeOperators   #-}
 
@@ -8,14 +8,17 @@ module Lib
 
 import Network.Wai
 import Network.Wai.Handler.Warp
+import Network.Wai.Middleware.RequestLogger
 import Servant
 import Control.Monad.Trans.Reader (runReaderT)
 import Control.Monad.Trans.Except (ExceptT)
 import Control.Monad.IO.Class (liftIO)
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Data.Pool as Pool
+import System.Log.FastLogger
+import Data.Default.Class (def)
 
-import App (DBPool, AppM)
+import App (Config ( .. ), AppM)
 import Api.User
 import Api.BlogPost
 
@@ -32,12 +35,15 @@ openConnection = PGS.connect PGS.defaultConnectInfo
 startApp :: IO ()
 startApp = do
   pool <- Pool.createPool openConnection PGS.close 1 10 5
-  run 8080 (app pool)
+  logger <- newStdoutLoggerSet defaultBufSize
+  midware <- mkRequestLogger $ def { destination = Logger logger }
+  pushLogStrLn logger "Hello World"
+  run 8080 $ midware $ app (Config pool logger)
 
-readerTToExcept :: DBPool -> AppM :~> ExceptT ServantErr IO
+readerTToExcept :: Config -> AppM :~> ExceptT ServantErr IO
 readerTToExcept pool = Nat (\r -> runReaderT r pool)
 
-app :: DBPool -> Application
+app :: Config -> Application
 app pool = serve api $ enter (readerTToExcept pool) server
 
 api :: Proxy API

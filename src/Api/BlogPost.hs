@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Api.BlogPost where
 
@@ -30,6 +31,7 @@ blogPostServer = getPosts
 
 getPosts :: AppM [BlogPostRead]
 getPosts = do con <- getConn
+              addToLogger "I got BlogPosts!"
               liftIO $ runQuery con blogPostsQuery
 
 getPostById :: BlogPostID -> AppM (Maybe BlogPostRead)
