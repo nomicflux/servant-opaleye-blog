@@ -43,6 +43,7 @@ One thing to note is that `LogStr` is an instance of `IsString`.  What that mean
 
 Next, we'll need to make a logger to put into that config. Let's head over to the `startApp` function.  Using our newfound knowledge from the `FastLogger` hackage page, we know that we can use the `newStdoutLoggerSet` function to create a logger:
 ```haskell
+startApp :: IO ()
 startApp = do
   pool <- Pool.createPool openConnection PGS.close 1 10 5
   logger <- newStdoutLoggerSet defaultBufSize
@@ -62,7 +63,6 @@ But we can do more.  Servant is built on top of Wai, the Web Application Interfa
 The list of things you can do with Wai middleware logging can be found at: [Network.Wai.Middleware.RequestLogger](https://hackage.haskell.org/package/wai-extra-3.0.16.1/docs/Network-Wai-Middleware-RequestLogger.html).  Two standard logging functions found there, `logStdout` and `logStdoutDev`, could have been set up without any of the changes to our cofiguration and types as follows:
 ```haskell
 
-startApp :: IO ()
 startApp = do
   pool <- Pool.createPool openConnection PGS.close 1 10 5
   run 8080 $ logStdoutDev $ app pool
