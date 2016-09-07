@@ -15,7 +15,7 @@ import Control.Monad.Trans.Except (ExceptT)
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Data.Pool as Pool
 import System.Log.FastLogger
-import Data.Default.Class (def)
+import Data.Default.Class (def, Default)
 import Data.Maybe (listToMaybe)
 
 import App (Config ( .. )
@@ -30,16 +30,37 @@ import Api.BlogPost
 type API = "users" :> UserAPI
       :<|> "posts" :> BlogPostAPI
 
+data ConnectionInfo = ConnectionInfo
+                      { connUser :: String
+                      , connPassword :: String
+                      , connDatabase :: String
+                      }
+
+instance Default ConnectionInfo where
+  def = ConnectionInfo
+        { connUser = "blogtutorial"
+        , connPassword = "blogtutorial"
+        , connDatabase = "blogtutorial"
+        }
+
+getConnInfo :: IO ConnectionInfo
+getConnInfo = do
+  ConnectionInfo <$>
+    lookupEnvDefault "SERVANT_PG_USER" (connUser def) <*>
+    lookupEnvDefault "SERVANT_PG_PWD" (connPassword def) <*>
+    lookupEnvDefault "SERVANT_PG_DB" (connDatabase def)
+
+connInfoToPG :: ConnectionInfo -> PGS.ConnectInfo
+connInfoToPG connInfo = PGS.defaultConnectInfo
+                        { PGS.connectUser = connUser connInfo
+                        , PGS.connectPassword = connPassword connInfo
+                        , PGS.connectDatabase = connDatabase connInfo
+                        }
+
 openConnection :: IO PGS.Connection
 openConnection = do
-  user <- lookupEnvDefault "SERVANT_PG_USER" "blogtutorial"
-  pwd <- lookupEnvDefault "SERVANT_PG_PWD" "blogtutorial"
-  db <- lookupEnvDefault "SERVANT_PG_DB" "blogtutorial"
-  PGS.connect PGS.defaultConnectInfo
-                 { PGS.connectUser = user
-                 , PGS.connectPassword = pwd
-                 , PGS.connectDatabase = db
-                 }
+  connInfo <- getConnInfo
+  PGS.connect (connInfoToPG connInfo)
 
 makeLogger :: Environment -> Logging -> IO (LoggerSet, Middleware)
 makeLogger env logPlace =
@@ -59,13 +80,11 @@ makeLogger env logPlace =
 
 startApp :: [String] -> IO ()
 startApp args = do
-  let mfilename = listToMaybe args
-      logDefault = case mfilename of
-        Nothing -> STDOut
-        Just filename -> File filename
   port <- lookupEnvDefault "SERVANT_PORT" 8080
   env <- lookupEnvDefault "SERVANT_ENV" Production
-  logPlace <- lookupEnvDefault "SERVANT_LOG" logDefault
+  logPlace <- case listToMaybe args of
+    Just filename -> return $ File filename
+    Nothing -> lookupEnvDefault "SERVANT_LOG" STDOut
   pool <- Pool.createPool openConnection PGS.close 1 10 5
   (logger, midware)  <- makeLogger env logPlace
   pushLogStrLn logger $ toLogStr $
