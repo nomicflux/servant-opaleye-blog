@@ -1,6 +1,7 @@
 module Main where
 
+import System.Environment
 import Lib
 
 main :: IO ()
-main = startApp
+main = getArgs >>= startApp

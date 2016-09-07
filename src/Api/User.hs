@@ -7,7 +7,6 @@ module Api.User where
 import Servant
 import Opaleye
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Reader (ask)
 import Data.Maybe (listToMaybe)
 import Data.Int (Int64)
 
@@ -39,8 +38,7 @@ getUserByEmail email = do con <- getConn
                           liftIO $ listToMaybe <$> runQuery con (userByEmailQuery email)
 
 verifyUser :: UserWrite -> AppM Bool
-verifyUser user = do con <- getConn
-                     dbUser <- getUserByEmail (userEmail user)
+verifyUser user = do dbUser <- getUserByEmail (userEmail user)
                      return $ compareUsers dbUser user
 
 postUser :: UserWrite -> AppM Int64
