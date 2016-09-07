@@ -27,13 +27,13 @@ Here are the various branches:
 5. Lesson 4 - Transformers: Back in Lesson 2, we introduced databases.  And databases require connections, which we've been passing function to function.  This complicates function calls, however, and ensures that the entire codebase has to agree on how precisely we connect to the database.  Wouldn't it be nice to write modular code, which keeps such tasks from infecting all of our components?  Using transformers, we can!
 6. Lesson 5 - Connection Pooling: We've theaded a database connection through our project, but it would be more efficient to pool them so that we can start up and tear down connections as needed, without having to worry about the specifics of resource management.  Using the abstractions we've already built up, and practicing our monad-wrangling skills a bit more, we can easily add in a resource pool in place of our single connection.
 7. Lesson 6 - Logging: Building off of the added configuration info we used for connection pooling, we'll add a logger.  This logger can both be used to log our own messages throughout the application as needed, and to automatically log server messages.  We'll also go through some alternatives, such as logging to a file, and setting up a one-step logger which doesn't require any changes to our current datatypes.
+8. Lesson 7 - Environment Variables: With logging set up, it's time to work in environment variables to control the level of logging and where it gets output to.  While we're at it, time to work in some more `IO` so that we can control the port and database configuration variables without continually recompiling.
 
 
 ## Future Sections
 
 The next few sections under development are:
 
-8. Lesson 7 - Environment Variables.
 9. Lesson 8 - Testing.
 10. Lesson 9 - Depolyment.
 
