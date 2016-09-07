@@ -4,7 +4,7 @@ In the last lesson, we set up various sorts of loggers.  Now, we're going to let
 
 ## Setting up DataTypes
 
-This being Haskell and all, our first step is to create a couple data types to hold information about the sorts of configurations we'll allow.  In my model, I want two different dimensions for my logging environment: what level of logging to use (the `Environment`, which I may use in other portions of the project as well) and the place to log to (`Logging`):
+This being Haskell and all, our first step is to create a couple data types to hold information about the sorts of configurations we'll allow.  In my model, I want two different dimensions for my logging environment: what level of logging to use (the `Environment`, which I may use in other portions of the project as well) and the place to log to (`LogTo`):
 
 ```haskell
 data Environment = Test
@@ -12,13 +12,13 @@ data Environment = Test
                  | Production
   deriving (Show, Eq, Read)
 
-data Logging = STDOut
+data LogTo = STDOut
              | STDErr
              | File String
   deriving (Show, Eq, Read)
 ```
 
-Our `Environment` can be `Testing` (no logging from the WAI logger), `Production` (Apache-style, just enough to give us information about requests and responses, mainly for looking up stuff when it goes wrong), and `Development` (fully-formatted and human-readable).  `Logging` can be to stdout, stderr, or to a file handler.
+Our `Environment` can be `Testing` (no logging from the WAI logger), `Production` (Apache-style, just enough to give us information about requests and responses, mainly for looking up stuff when it goes wrong), and `Development` (fully-formatted and human-readable).  `LogTo` can be to stdout, stderr, or to a file handler.
 
 We're also deriving `Read` instances for these data types, since we'll read them in from `IO`.  This necessitates that they be typed exactly as they are written here; "STDOut" will work, but "stdout" will not.  If you prefer, you can write your own parser to capture the different options, allowing for different capitalizations.  But I've elected to keep things simple here.
 
@@ -85,7 +85,7 @@ openConnection = do
 
 Since `openConnection` is in `IO` anyhow, we can easily add in connection information as necessary.
 
-## Optional: Using Types with Connection Info
+## Optional: Using a Connection Info Type
 
 Perhaps you'd prefer using types with the `ConnectionInfo`.  In that case, we can provide a data type, extend it with a `Default` option, create a conversion function, and get all the info in one fell swoop:
 
@@ -99,6 +99,7 @@ data ConnectionInfo = ConnectionInfo
                       , connPassword :: String
                       , connDatabase :: String
                       }
+
 instance Default ConnectionInfo where
   def = ConnectionInfo
         { connUser = "blogtutorial"
@@ -107,7 +108,7 @@ instance Default ConnectionInfo where
         }
 
 getConnInfo :: IO ConnectionInfo
-getConnInfo = do
+getConnInfo =
   ConnectionInfo <$>
     lookupEnvDefault "SERVANT_PG_USER" (connUser def) <*>
     lookupEnvDefault "SERVANT_PG_PWD" (connPassword def) <*>
@@ -135,33 +136,33 @@ You might notice, though, that we've just used several times to code to accompli
 And now on to the main point of this lesson: configuring our loggers:
 
 ```haskell
-makeLogger :: Environment -> IO LoggerSet
-makeLogger env = case logPlace of
+makeLogger :: LogTo -> IO LoggerSet
+makeLogger logTo = case logTo of
         STDOut -> newStdoutLoggerSet defaultBufSize
         STDErr -> newStderrLoggerSet defaultBufSize
         File filename -> newFileLoggerSet defaultBufSize filename
 
-makeMiddleware :: LoggerSet -> Logger -> IO Middleware
-makeMiddleware logPlace logger = case env of
+makeMiddleware :: LoggerSet -> Environment -> IO Middleware
+makeMiddleware logger env = case env of
       Test -> return id
       Production -> mkRequestLogger $ def { destination = Logger logger
                                           , outputFormat = Apache FromSocket
                                           }
       Development -> mkRequestLogger $ def { destination = Logger logger }
 ```
-One function configures the logger based on our `Environment`, and the other sets it up in our `Middleware` based on the logging output location.  Then we interleave those into our `startApp` function:
+One function configures the logger based on our `LogTo`, and the other sets the logger up in our `Middleware` based on the logging output location.  Then we interleave those into our `startApp` function:
 
 ```haskell
 startApp :: [String] -> IO ()
 startApp args = do
   port <- lookupEnvDefault "SERVANT_PORT" 8080
   env <- lookupEnvDefault "SERVANT_ENV" Production
-  logPlace <- lookupEnvDefault "SERVANT_LOG" STDOut
+  logTo <-  lookupEnvDefault "SERVANT_LOG" STDOut
   pool <- Pool.createPool openConnection PGS.close 1 10 5
-  logger <- makeLogger env
-  midware <- makeMiddleware logger logPlace
+  logger <- makeLogger logTo
+  midware <- makeMiddleware logger env
   pushLogStrLn logger $ toLogStr $
-    "Listening on port " ++ show port ++ " at level " ++ show env ++ " and logging to "  ++ show logPlace
+    "Listening on port " ++ show port ++ " at level " ++ show env ++ " and logging to "  ++ show logTo
   run port $ midware $ app (Config pool logger)
 ```
 And we are done!
@@ -188,16 +189,14 @@ startApp :: [String] -> IO ()
 startApp args = do
   port <- lookupEnvDefault "SERVANT_PORT" 8080
   env <- lookupEnvDefault "SERVANT_ENV" Production
-  logPlace <- case listToMaybe args of
+  logTo <- case listToMaybe args of
     Just filename -> return $ File filename
     Nothing -> lookupEnvDefault "SERVANT_LOG" STDOut
   pool <- Pool.createPool openConnection PGS.close 1 10 5
-  logger <- makeLogger env
-  midware <- makeMiddleware logger logPlace
+  logger <- makeLogger logTo
+  midware <- makeMiddleware logger env
   pushLogStrLn logger $ toLogStr $
-    "Listening on port " ++ show port ++ " at level " ++ show env ++ " and logging to "  ++ show logPlace ++ " with args " ++ unwords args
-  pushLogStrLn logger $ toLogStr $
-    "Listening on port " ++ show port ++ " at level " ++ show env ++ " and logging to "  ++ show logPlace ++ " with args " ++ unwords args
+    "Listening on port " ++ show port ++ " at level " ++ show env ++ " and logging to "  ++ show logTo ++ " with args " ++ unwords args
   run port $ midware $ app (Config pool logger)
 ```
 

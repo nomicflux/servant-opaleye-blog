@@ -22,9 +22,9 @@ data Environment = Test
                  | Production
   deriving (Show, Eq, Read)
 
-data Logging = STDOut
-             | STDErr
-             | File String
+data LogTo = STDOut
+           | STDErr
+           | File String
   deriving (Show, Eq, Read)
 
 data Config = Config

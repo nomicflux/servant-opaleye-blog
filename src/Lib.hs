@@ -21,7 +21,7 @@ import Data.Maybe (listToMaybe)
 import App (Config ( .. )
            , AppM
            , Environment ( .. )
-           , Logging ( .. )
+           , LogTo ( .. )
            , lookupEnvDefault
            )
 import Api.User
@@ -44,7 +44,7 @@ instance Default ConnectionInfo where
         }
 
 getConnInfo :: IO ConnectionInfo
-getConnInfo = do
+getConnInfo =
   ConnectionInfo <$>
     lookupEnvDefault "SERVANT_PG_USER" (connUser def) <*>
     lookupEnvDefault "SERVANT_PG_PWD" (connPassword def) <*>
@@ -62,33 +62,32 @@ openConnection = do
   connInfo <- getConnInfo
   PGS.connect (connInfoToPG connInfo)
 
-makeLogger :: Environment -> Logging -> IO (LoggerSet, Middleware)
-makeLogger env logPlace =
-  let loggerM = case logPlace of
+makeLogger :: LogTo -> IO LoggerSet
+makeLogger logTo = case logTo of
         STDOut -> newStdoutLoggerSet defaultBufSize
         STDErr -> newStderrLoggerSet defaultBufSize
         File filename -> newFileLoggerSet defaultBufSize filename
-  in do
-    logger <- loggerM
-    midware <- case env of
+
+makeMiddleware :: LoggerSet -> Environment -> IO Middleware
+makeMiddleware logger env = case env of
       Test -> return id
       Production -> mkRequestLogger $ def { destination = Logger logger
                                           , outputFormat = Apache FromSocket
                                           }
       Development -> mkRequestLogger $ def { destination = Logger logger }
-    return (logger, midware)
 
 startApp :: [String] -> IO ()
 startApp args = do
   port <- lookupEnvDefault "SERVANT_PORT" 8080
   env <- lookupEnvDefault "SERVANT_ENV" Production
-  logPlace <- case listToMaybe args of
+  logTo <- case listToMaybe args of
     Just filename -> return $ File filename
     Nothing -> lookupEnvDefault "SERVANT_LOG" STDOut
   pool <- Pool.createPool openConnection PGS.close 1 10 5
-  (logger, midware)  <- makeLogger env logPlace
+  logger <- makeLogger logTo
+  midware <- makeMiddleware logger env
   pushLogStrLn logger $ toLogStr $
-    "Listening on port " ++ show port ++ " at level " ++ show env ++ " and logging to "  ++ show logPlace ++ " with args " ++ unwords args
+    "Listening on port " ++ show port ++ " at level " ++ show env ++ " and logging to "  ++ show logTo ++ " with args " ++ unwords args
   run port $ midware $ app (Config pool logger)
 
 readerTToExcept :: Config -> AppM :~> ExceptT ServantErr IO
