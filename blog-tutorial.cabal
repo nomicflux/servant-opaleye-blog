@@ -23,17 +23,19 @@ library
                      , Models.BlogPost
                      , Queries.User
                      , Queries.BlogPost
-  build-depends:       base >= 4.7 && < 5
-                     , aeson
-                     , servant-server == 0.5
-                     , wai
-                     , warp
+  build-depends:       aeson
+                     , base >= 4.7 && < 5
+                     , bytestring
                      , datetime
                      , opaleye
-                     , product-profunctors
-                     , bytestring
                      , postgresql-simple
+                     , product-profunctors
+                     , profunctors >= 5.1.2
+                     , servant-server == 0.5
                      , transformers
+                     , wai
+                     , warp
+                     , data-default
   default-language:    Haskell2010
 
 executable blog-tutorial-exe
@@ -42,6 +44,7 @@ executable blog-tutorial-exe
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:       base
                      , blog-tutorial
+                     , profunctors >= 5.1.2
   default-language:    Haskell2010
 
 test-suite blog-tutorial-test
@@ -50,6 +53,7 @@ test-suite blog-tutorial-test
   main-is:             Spec.hs
   build-depends:       base
                      , blog-tutorial
+                     , profunctors >= 5.1.2
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
