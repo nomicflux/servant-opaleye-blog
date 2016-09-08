@@ -7,7 +7,6 @@ module Api.User where
 import Servant
 import Opaleye
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Reader (ask)
 import Data.Maybe (listToMaybe)
 import Data.Int (Int64)
 
