@@ -2,7 +2,11 @@
 
 #### Updated
 
-Tutorial updated for Servant 0.5.  Sections on testing, logging, and reading in environment variables coming soon!
+Tutorial updated for Servant 0.8.  Sections on testing and deployment coming soon!
+
+For new lessons in particular, this GitHub page will host the latest drafts, in
+various stages of completion.  I'll also be posting them in cleaned up form at
+[https://nomicflux.github.io/posts/2016-08-30-servant-opaleye-part-1.html#disqus-thread](https://nomicflux.github.io/posts/2016-08-30-servant-opaleye-part-1.html#disqus-thread).
 
 ---
 
