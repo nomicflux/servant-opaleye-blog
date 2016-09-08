@@ -25,7 +25,7 @@ library
                      , Queries.BlogPost
   build-depends:       base >= 4.7 && < 5
                      , aeson
-                     , servant-server == 0.5
+                     , servant-server == 0.8
                      , wai
                      , warp
                      , datetime
