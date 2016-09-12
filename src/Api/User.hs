@@ -32,5 +32,5 @@ getUserByEmail :: PGS.Connection -> Email -> AppM (Maybe User)
 getUserByEmail con email = liftIO $ listToMaybe <$> O.runQuery con (userByEmailQuery email)
 
 postUser :: PGS.Connection -> User -> AppM (Maybe Email)
-postUser con user = listToMaybe <$> liftIO
-  (O.runInsertManyReturning con userTable [userToPG user] userEmail)
+postUser con user = liftIO $ listToMaybe <$>
+  O.runInsertManyReturning con userTable [userToPG user] userEmail

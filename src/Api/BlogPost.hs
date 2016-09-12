@@ -37,5 +37,5 @@ getPostsByEmail :: PGS.Connection -> Email -> AppM [BlogPostRead]
 getPostsByEmail con email = liftIO $ O.runQuery con (blogPostsByEmailQuery email)
 
 postPost :: PGS.Connection -> BlogPostWrite -> AppM (Maybe BlogPostID)
-postPost con post = listToMaybe <$> liftIO
-  (O.runInsertManyReturning con blogPostTable [blogPostToPG post] bpId)
+postPost con post = liftIO $ listToMaybe <$>
+  O.runInsertManyReturning con blogPostTable [blogPostToPG post] bpId

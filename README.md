@@ -294,8 +294,8 @@ getUserByEmail :: PGS.Connection -> Email -> AppM (Maybe User)
 getUserByEmail con email = liftIO $ listToMaybe <$> runQuery con (userByEmailQuery email)
 
 postUser :: PGS.Connection -> User -> AppM (Maybe Email)
-postUser con user = listToMaybe <$> liftIO
-    (runInsertManyReturning con userTable [userToPG user] userEmail)
+postUser con user = liftIO $ listToMaybe <$>
+    runInsertManyReturning con userTable [userToPG user] userEmail
 ```
 
 All of the functions now take a `PGS.Connection` as their first argument - we'll clean that up in Lesson 4.  We use `runQuery con` to, well, run the queries which we have built in the `Queries/User.hs` file.  Similarly, we use `runInsert con` to actually insert a user.  Just make sure to use our conversion function first: `userToPG`.
