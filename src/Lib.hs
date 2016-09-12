@@ -6,16 +6,16 @@ module Lib
     ( startApp
     ) where
 
-import Network.Wai
-import Network.Wai.Handler.Warp
-import Network.Wai.Middleware.RequestLogger
-import Servant
+import qualified Network.Wai as Wai
+import qualified Network.Wai.Handler.Warp as Warp
+import qualified Network.Wai.Middleware.RequestLogger as MidRL
+import Servant ((:<|>)( .. ), (:>), (:~>))
+import qualified Servant as S
 import Control.Monad.Trans.Reader (runReaderT)
 import Control.Monad.Trans.Except (ExceptT)
-import Control.Monad.IO.Class (liftIO)
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Data.Pool as Pool
-import System.Log.FastLogger
+import qualified System.Log.FastLogger as FL
 import Data.Default.Class (def)
 
 import App (Config ( .. ), AppM)
@@ -35,20 +35,20 @@ openConnection = PGS.connect PGS.defaultConnectInfo
 startApp :: IO ()
 startApp = do
   pool <- Pool.createPool openConnection PGS.close 1 10 5
-  logger <- newStdoutLoggerSet defaultBufSize
-  midware <- mkRequestLogger $ def { destination = Logger logger }
-  pushLogStrLn logger "Hello World"
-  run 8080 $ midware $ app (Config pool logger)
+  logger <- FL.newStdoutLoggerSet FL.defaultBufSize
+  midware <- MidRL.mkRequestLogger $ def { MidRL.destination = MidRL.Logger logger }
+  FL.pushLogStrLn logger "Hello World"
+  Warp.run 8080 $ midware $ app (Config pool logger)
 
-readerTToExcept :: Config -> AppM :~> ExceptT ServantErr IO
-readerTToExcept pool = Nat (\r -> runReaderT r pool)
+readerTToExcept :: Config -> AppM :~> ExceptT S.ServantErr IO
+readerTToExcept pool = S.Nat (\r -> runReaderT r pool)
 
-app :: Config -> Application
-app pool = serve api $ enter (readerTToExcept pool) server
+app :: Config -> Wai.Application
+app pool = S.serve api $ S.enter (readerTToExcept pool) server
 
-api :: Proxy API
-api = Proxy
+api :: S.Proxy API
+api = S.Proxy
 
-server :: ServerT API AppM
+server :: S.ServerT API AppM
 server = userServer
     :<|> blogPostServer
