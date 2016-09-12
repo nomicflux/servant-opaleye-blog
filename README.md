@@ -293,14 +293,21 @@ getUsers con = liftIO $ runQuery con usersQuery
 getUserByEmail :: PGS.Connection -> Email -> AppM (Maybe User)
 getUserByEmail con email = liftIO $ listToMaybe <$> runQuery con (userByEmailQuery email)
 
-postUser :: PGS.Connection -> User -> AppM Int64
-postUser con user = liftIO $ runInsert con userTable $ userToPG user
+postUser :: PGS.Connection -> User -> AppM (Maybe Email)
+postUser con user = listToMaybe <$> liftIO
+    (runInsertManyReturning con userTable [userToPG user] userEmail)
 ```
+
 All of the functions now take a `PGS.Connection` as their first argument - we'll clean that up in Lesson 4.  We use `runQuery con` to, well, run the queries which we have built in the `Queries/User.hs` file.  Similarly, we use `runInsert con` to actually insert a user.  Just make sure to use our conversion function first: `userToPG`.
 
 Previous to this step, we've just set up the logic for database interactions.  Now that we're actually using the database, we'll need to run all of this in `IO`; to do this, make sure to use `liftIO` on anything involving actual database results.
 
-One more minor point: Since I'm trying to keep things simple, instead of returning a list of users from a __POST__ request, I'm merely returning the output of `runInsert`, which is an `Int64`.  The `UserAPI` is changed to match.
+One more minor point: instead of returning a list of users from a __POST__ request, I'm returning the the primary keys which were inserted through `runInsertManyReturning ... userEmail`.  Since `runInsertManyReturning` can insert multiple rows, it can also return multiple values; however, we are just inserting one value, and can have only one or none in return.  The `UserAPI` is changed to match:
+```haskell
+type UserAPI = Get '[JSON] [User]
+          :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
+          :<|> ReqBody '[JSON] User :> Post '[JSON] (Maybe Email)
+```
 
 An usual, everything in Api/BlogPost.hs follows suit, and could be rewritten just with the information I've provided about Api/User.hs.  If you do get stuck, feel free to peek at the source code.
 

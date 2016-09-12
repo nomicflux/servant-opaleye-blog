@@ -4,10 +4,9 @@
 module Api.User where
 
 import Servant
-import Opaleye
+import qualified Opaleye as O
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (listToMaybe)
-import Data.Int (Int64)
 import qualified Database.PostgreSQL.Simple as PGS
 
 import App
@@ -16,7 +15,7 @@ import Queries.User
 
 type UserAPI = Get '[JSON] [User]
           :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
-          :<|> ReqBody '[JSON] User :> Post '[JSON] Int64
+          :<|> ReqBody '[JSON] User :> Post '[JSON] (Maybe Email)
 
 userAPI :: Proxy UserAPI
 userAPI = Proxy
@@ -27,10 +26,11 @@ userServer con = getUsers con
             :<|> postUser con
 
 getUsers :: PGS.Connection -> AppM [User]
-getUsers con = liftIO $ runQuery con usersQuery
+getUsers con = liftIO $ O.runQuery con usersQuery
 
 getUserByEmail :: PGS.Connection -> Email -> AppM (Maybe User)
-getUserByEmail con email = liftIO $ listToMaybe <$> runQuery con (userByEmailQuery email)
+getUserByEmail con email = liftIO $ listToMaybe <$> O.runQuery con (userByEmailQuery email)
 
-postUser :: PGS.Connection -> User -> AppM Int64
-postUser con user = liftIO $ runInsert con userTable $ userToPG user
+postUser :: PGS.Connection -> User -> AppM (Maybe Email)
+postUser con user = listToMaybe <$> liftIO
+  (O.runInsertManyReturning con userTable [userToPG user] userEmail)

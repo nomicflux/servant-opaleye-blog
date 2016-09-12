@@ -5,7 +5,7 @@
 
 module Models.User where
 
-import Opaleye
+import qualified Opaleye as O
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.ByteString (ByteString)
@@ -18,8 +18,9 @@ data User' email pwd = User
                          { userEmail    :: email
                          , userPassword :: pwd
                          }
+
 type User = User' Email ByteString
-type UserColumn = User' (Column PGText) (Column PGBytea)
+type UserColumn = User' (O.Column O.PGText) (O.Column O.PGBytea)
 
 $(makeAdaptorAndInstance "pUser" ''User')
 
@@ -32,12 +33,12 @@ instance FromJSON User where
                               (BS.pack <$> o .: "password")
   parseJSON _ = mzero
 
-userTable :: Table UserColumn UserColumn
-userTable = Table "users" (pUser User { userEmail = required "email"
-                                      , userPassword = required "password"
-                                      })
+userTable :: O.Table UserColumn UserColumn
+userTable = O.Table "users" (pUser User { userEmail = O.required "email"
+                                        , userPassword = O.required "password"
+                                        })
 
 userToPG :: User -> UserColumn
-userToPG = pUser User { userEmail = pgString
-                      , userPassword = pgStrictByteString
+userToPG = pUser User { userEmail = O.pgString
+                      , userPassword = O.pgStrictByteString
                       }
