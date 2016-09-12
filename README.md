@@ -2,6 +2,10 @@
 
 #### Updated
 
+Lesson 2 (and onward) now have the `POST` endpoints returning primary keys
+instead of number of rows inserted.  Also, I've explicitly qualified most
+imports now, to show precisely which libraries contain which functions.
+
 Tutorial updated for Servant 0.8.  Sections on testing and deployment coming soon!
 
 For new lessons in particular, this GitHub page will host the latest drafts, in
