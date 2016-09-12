@@ -2,23 +2,24 @@
 
 module Queries.BlogPost where
 
-import Opaleye
+import qualified Opaleye as O
+import Opaleye ((.==))
 import Control.Arrow (returnA)
 
 import App
 import Models.BlogPost
 
-blogPostsQuery :: Query BPColumnRead
-blogPostsQuery = queryTable blogPostTable
+blogPostsQuery :: O.Query BPColumnRead
+blogPostsQuery = O.queryTable blogPostTable
 
-blogPostByIdQuery :: BlogPostID -> Query BPColumnRead
+blogPostByIdQuery :: BlogPostID -> O.Query BPColumnRead
 blogPostByIdQuery postID = proc () -> do
   post <- blogPostsQuery -< ()
-  restrict -< bpId post .== pgInt8 postID
+  O.restrict -< bpId post .== O.pgInt8 postID
   returnA -< post
 
-blogPostsByEmailQuery :: Email -> Query BPColumnRead
+blogPostsByEmailQuery :: Email -> O.Query BPColumnRead
 blogPostsByEmailQuery email = proc () -> do
   post <- blogPostsQuery -< ()
-  restrict -< bpUsersEmail post .== pgString email
+  O.restrict -< bpUsersEmail post .== O.pgString email
   returnA -< post
