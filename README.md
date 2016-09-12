@@ -41,6 +41,9 @@ The next few sections under development are:
 
 9. Lesson 8 - Testing.
 10. Lesson 9 - Depolyment.
+11. Lessons 10+ - Most of the stuff so far has been on Servant - I'm planning
+    lessons on working with Opaleye (more complicated queries, changing up the
+    types involved, and maybe even playing with opaleye-sot).
 
 ## Assumptions
 
