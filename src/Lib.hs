@@ -6,9 +6,10 @@ module Lib
     ( startApp
     ) where
 
-import Network.Wai
-import Network.Wai.Handler.Warp
-import Servant
+import qualified Network.Wai as Wai
+import qualified Network.Wai.Handler.Warp as Warp
+import Servant ((:<|>)( .. ), (:>), (:~>))
+import qualified Servant as S
 import Control.Monad.Trans.Reader (runReaderT)
 import Control.Monad.Trans.Except (ExceptT)
 import Control.Monad.IO.Class (liftIO)
@@ -28,17 +29,17 @@ startApp = do
          , PGS.connectPassword = "blogtutorial"
          , PGS.connectDatabase = "blogtutorial"
          }
-  run 8080 (app con)
+  Warp.run 8080 (app con)
 
-readerTToExcept :: PGS.Connection -> AppM :~> ExceptT ServantErr IO
-readerTToExcept con = Nat (\r -> runReaderT r con)
+readerTToExcept :: PGS.Connection -> AppM :~> ExceptT S.ServantErr IO
+readerTToExcept con = S.Nat (\r -> runReaderT r con)
 
-app :: PGS.Connection -> Application
-app con = serve api $ enter (readerTToExcept con) server
+app :: PGS.Connection -> Wai.Application
+app con = S.serve api $ S.enter (readerTToExcept con) server
 
-api :: Proxy API
-api = Proxy
+api :: S.Proxy API
+api = S.Proxy
 
-server :: ServerT API AppM
+server :: S.ServerT API AppM
 server = userServer
     :<|> blogPostServer
