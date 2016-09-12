@@ -6,12 +6,12 @@ module Lib
     ( startApp
     ) where
 
-import Network.Wai
-import Network.Wai.Handler.Warp
-import Servant
+import qualified Network.Wai as Wai
+import qualified Network.Wai.Handler.Warp as Warp
+import Servant ((:<|>)( .. ), (:>), (:~>))
+import qualified Servant as S
 import Control.Monad.Trans.Reader (runReaderT)
 import Control.Monad.Trans.Except (ExceptT)
-import Control.Monad.IO.Class (liftIO)
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Data.Pool as Pool
 
@@ -32,17 +32,17 @@ openConnection = PGS.connect PGS.defaultConnectInfo
 startApp :: IO ()
 startApp = do
   pool <- Pool.createPool openConnection PGS.close 1 10 5
-  run 8080 (app pool)
+  Warp.run 8080 (app pool)
 
-readerTToExcept :: DBPool -> AppM :~> ExceptT ServantErr IO
-readerTToExcept pool = Nat (\r -> runReaderT r pool)
+readerTToExcept :: DBPool -> AppM :~> ExceptT S.ServantErr IO
+readerTToExcept pool = S.Nat (\r -> runReaderT r pool)
 
-app :: DBPool -> Application
-app pool = serve api $ enter (readerTToExcept pool) server
+app :: DBPool -> Wai.Application
+app pool = S.serve api $ S.enter (readerTToExcept pool) server
 
-api :: Proxy API
-api = Proxy
+api :: S.Proxy API
+api = S.Proxy
 
-server :: ServerT API AppM
+server :: S.ServerT API AppM
 server = userServer
     :<|> blogPostServer
