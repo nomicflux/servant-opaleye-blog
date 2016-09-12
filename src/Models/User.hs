@@ -5,7 +5,7 @@
 
 module Models.User where
 
-import Opaleye
+import qualified Opaleye as O
 import Control.Monad (mzero)
 import Crypto.PasswordStore
 import Data.Aeson
@@ -21,7 +21,7 @@ data User' email pwd = User
                          }
 type UserRead = User' Email ByteString
 type UserWrite = User' Email String
-type UserColumn = User' (Column PGText) (Column PGBytea)
+type UserColumn = User' (O.Column O.PGText) (O.Column O.PGBytea)
 
 $(makeAdaptorAndInstance "pUser" ''User')
 
@@ -34,16 +34,16 @@ instance FromJSON UserWrite where
                               o .: "password"
   parseJSON _ = mzero
 
-userTable :: Table UserColumn UserColumn
-userTable = Table "users" (pUser User { userEmail = required "email"
-                                      , userPassword = required "password"
-                                      })
+userTable :: O.Table UserColumn UserColumn
+userTable = O.Table "users" (pUser User { userEmail = O.required "email"
+                                        , userPassword = O.required "password"
+                                        })
 
 userToPG :: UserWrite -> IO UserColumn
 userToPG user = do hashedPwd <- flip makePassword 12 . BS.pack . userPassword $ user
                    return
-                     User { userEmail = pgString . userEmail $ user
-                          , userPassword = pgStrictByteString hashedPwd
+                     User { userEmail = O.pgString . userEmail $ user
+                          , userPassword = O.pgStrictByteString hashedPwd
                           }
 
 compareUsers :: Maybe UserRead -> UserWrite -> Bool

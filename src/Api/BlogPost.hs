@@ -5,10 +5,9 @@
 module Api.BlogPost where
 
 import Servant
-import Opaleye
+import qualified Opaleye as O
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (listToMaybe)
-import Data.Int (Int64)
 
 import App
 import Models.BlogPost
@@ -17,7 +16,7 @@ import Queries.BlogPost
 type BlogPostAPI = Get '[JSON] [BlogPostRead]
               :<|> Capture "id" BlogPostID :> Get '[JSON] (Maybe BlogPostRead)
               :<|> Capture "email" Email :> Get '[JSON] [BlogPostRead]
-              :<|> ReqBody '[JSON] BlogPostWrite :> Post '[JSON] Int64
+              :<|> ReqBody '[JSON] BlogPostWrite :> Post '[JSON] (Maybe BlogPostID)
 
 blogPostAPI :: Proxy BlogPostAPI
 blogPostAPI = Proxy
@@ -31,16 +30,17 @@ blogPostServer = getPosts
 getPosts :: AppM [BlogPostRead]
 getPosts = do con <- getConn
               addToLogger "I got BlogPosts!"
-              liftIO $ runQuery con blogPostsQuery
+              liftIO $ O.runQuery con blogPostsQuery
 
 getPostById :: BlogPostID -> AppM (Maybe BlogPostRead)
 getPostById postID = do con <- getConn
-                        liftIO $ listToMaybe <$> runQuery con (blogPostByIdQuery postID)
+                        liftIO $ listToMaybe <$> O.runQuery con (blogPostByIdQuery postID)
 
 getPostsByEmail :: Email -> AppM [BlogPostRead]
 getPostsByEmail email = do con <- getConn
-                           liftIO $ runQuery con (blogPostsByEmailQuery email)
+                           liftIO $ O.runQuery con (blogPostsByEmailQuery email)
 
-postPost :: BlogPostWrite -> AppM Int64
+postPost :: BlogPostWrite -> AppM (Maybe BlogPostID)
 postPost post = do con <- getConn
-                   liftIO $ runInsert con blogPostTable $ blogPostToPG post
+                   liftIO $ listToMaybe <$>
+                     O.runInsertManyReturning con blogPostTable [blogPostToPG post] bpId
