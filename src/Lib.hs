@@ -6,15 +6,16 @@ module Lib
     ( startApp
     ) where
 
-import Network.Wai
-import Network.Wai.Handler.Warp
-import Network.Wai.Middleware.RequestLogger
-import Servant
+import qualified Network.Wai as Wai
+import qualified Network.Wai.Handler.Warp as Warp
+import qualified Network.Wai.Middleware.RequestLogger as MidRL
+import Servant ((:<|>)( .. ), (:>), (:~>))
+import qualified Servant as S
 import Control.Monad.Trans.Reader (runReaderT)
 import Control.Monad.Trans.Except (ExceptT)
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Data.Pool as Pool
-import System.Log.FastLogger
+import qualified System.Log.FastLogger as FL
 import Data.Default.Class (def, Default)
 import Data.Maybe (listToMaybe)
 
@@ -62,19 +63,19 @@ openConnection = do
   connInfo <- getConnInfo
   PGS.connect (connInfoToPG connInfo)
 
-makeLogger :: LogTo -> IO LoggerSet
+makeLogger :: LogTo -> IO FL.LoggerSet
 makeLogger logTo = case logTo of
-        STDOut -> newStdoutLoggerSet defaultBufSize
-        STDErr -> newStderrLoggerSet defaultBufSize
-        File filename -> newFileLoggerSet defaultBufSize filename
+        STDOut -> FL.newStdoutLoggerSet FL.defaultBufSize
+        STDErr -> FL.newStderrLoggerSet FL.defaultBufSize
+        File filename -> FL.newFileLoggerSet FL.defaultBufSize filename
 
-makeMiddleware :: LoggerSet -> Environment -> IO Middleware
+makeMiddleware :: FL.LoggerSet -> Environment -> IO Wai.Middleware
 makeMiddleware logger env = case env of
       Test -> return id
-      Production -> mkRequestLogger $ def { destination = Logger logger
-                                          , outputFormat = Apache FromSocket
-                                          }
-      Development -> mkRequestLogger $ def { destination = Logger logger }
+      Production -> MidRL.mkRequestLogger $ def { MidRL.destination = MidRL.Logger logger
+                                                , MidRL.outputFormat = MidRL.Apache MidRL.FromSocket
+                                                }
+      Development -> MidRL.mkRequestLogger $ def { MidRL.destination = MidRL.Logger logger }
 
 startApp :: [String] -> IO ()
 startApp args = do
@@ -86,19 +87,19 @@ startApp args = do
   pool <- Pool.createPool openConnection PGS.close 1 10 5
   logger <- makeLogger logTo
   midware <- makeMiddleware logger env
-  pushLogStrLn logger $ toLogStr $
+  FL.pushLogStrLn logger $ FL.toLogStr $
     "Listening on port " ++ show port ++ " at level " ++ show env ++ " and logging to "  ++ show logTo ++ " with args " ++ unwords args
-  run port $ midware $ app (Config pool logger)
+  Warp.run port $ midware $ app (Config pool logger)
 
-readerTToExcept :: Config -> AppM :~> ExceptT ServantErr IO
-readerTToExcept pool = Nat (\r -> runReaderT r pool)
+readerTToExcept :: Config -> AppM :~> ExceptT S.ServantErr IO
+readerTToExcept pool = S.Nat (\r -> runReaderT r pool)
 
-app :: Config -> Application
-app pool = serve api $ enter (readerTToExcept pool) server
+app :: Config -> Wai.Application
+app pool = S.serve api $ S.enter (readerTToExcept pool) server
 
-api :: Proxy API
-api = Proxy
+api :: S.Proxy API
+api = S.Proxy
 
-server :: ServerT API AppM
+server :: S.ServerT API AppM
 server = userServer
     :<|> blogPostServer
