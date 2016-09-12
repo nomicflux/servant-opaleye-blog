@@ -2,17 +2,18 @@
 
 module Queries.User where
 
-import Opaleye
+import qualified Opaleye as O
+import Opaleye ((.==))
 import Control.Arrow (returnA)
 
 import App
 import Models.User
 
-usersQuery :: Query UserColumn
-usersQuery = queryTable userTable
+usersQuery :: O.Query UserColumn
+usersQuery = O.queryTable userTable
 
-userByEmailQuery :: Email -> Query UserColumn
+userByEmailQuery :: Email -> O.Query UserColumn
 userByEmailQuery email = proc () -> do
-                           user <- usersQuery -< ()
-                           restrict -< userEmail user .== pgString email
-                           returnA -< user
+  user <- usersQuery -< ()
+  O.restrict -< userEmail user .== O.pgString email
+  returnA -< user

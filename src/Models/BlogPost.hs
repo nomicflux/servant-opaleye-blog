@@ -5,7 +5,7 @@
 
 module Models.BlogPost where
 
-import Opaleye
+import qualified Opaleye as O
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.DateTime (DateTime)
@@ -23,16 +23,16 @@ data BlogPost' id title body email time = BlogPost
 
 type BlogPostRead = BlogPost' BlogPostID String String Email DateTime
 type BlogPostWrite = BlogPost' (Maybe BlogPostID) String String Email (Maybe DateTime)
-type BPColumnRead = BlogPost' (Column PGInt8)
-                              (Column PGText)
-                              (Column PGText)
-                              (Column PGText)
-                              (Column PGTimestamptz)
-type BPColumnWrite = BlogPost' (Maybe (Column PGInt8))
-                               (Column PGText)
-                               (Column PGText)
-                               (Column PGText)
-                               (Maybe (Column PGTimestamptz))
+type BPColumnRead = BlogPost' (O.Column O.PGInt8)
+                              (O.Column O.PGText)
+                              (O.Column O.PGText)
+                              (O.Column O.PGText)
+                              (O.Column O.PGTimestamptz)
+type BPColumnWrite = BlogPost' (Maybe (O.Column O.PGInt8))
+                               (O.Column O.PGText)
+                               (O.Column O.PGText)
+                               (O.Column O.PGText)
+                               (Maybe (O.Column O.PGTimestamptz))
 
 instance ToJSON BlogPostRead where
   toJSON post = object [ "id"        .= bpId post
@@ -53,18 +53,18 @@ instance FromJSON BlogPostWrite where
 
 $(makeAdaptorAndInstance "pBlogPost" ''BlogPost')
 
-blogPostTable :: Table BPColumnWrite BPColumnRead
-blogPostTable = Table "posts" (pBlogPost BlogPost { bpId = optional "id"
-                                                  , bpTitle = required "title"
-                                                  , bpBody = required "body"
-                                                  , bpUsersEmail = required "users_email"
-                                                  , bpTimestamp = optional "timestamp"
-                                                  })
+blogPostTable :: O.Table BPColumnWrite BPColumnRead
+blogPostTable = O.Table "posts" (pBlogPost BlogPost { bpId = O.optional "id"
+                                                    , bpTitle = O.required "title"
+                                                    , bpBody = O.required "body"
+                                                    , bpUsersEmail = O.required "users_email"
+                                                    , bpTimestamp = O.optional "timestamp"
+                                                    })
 
 blogPostToPG :: BlogPostWrite -> BPColumnWrite
 blogPostToPG = pBlogPost BlogPost { bpId = const Nothing
-                                  , bpTitle = pgString
-                                  , bpBody = pgString
-                                  , bpUsersEmail = pgString
+                                  , bpTitle = O.pgString
+                                  , bpBody = O.pgString
+                                  , bpUsersEmail = O.pgString
                                   , bpTimestamp = const Nothing
                                   }
