@@ -2,11 +2,11 @@
 
 #### Updated
 
+Coming up next: Authentication and WebSockets
+
 Lesson 2 (and onward) now have the `POST` endpoints returning primary keys
 instead of number of rows inserted.  Also, I've explicitly qualified most
 imports now, to show precisely which libraries contain which functions.
-
-Tutorial updated for Servant 0.8.  Sections on testing and deployment coming soon!
 
 For new lessons in particular, this GitHub page will host the latest drafts, in
 various stages of completion.  I'll also be posting them in cleaned up form
@@ -43,9 +43,10 @@ Here are the various branches:
 
 The next few sections under development are:
 
-9. Lesson 8 - Testing.
-10. Lesson 9 - Depolyment.
-11. Lessons 10+ - Most of the stuff so far has been on Servant - I'm planning
+9. Lesson 8 - Authentication.
+10. Lesson 9 - WebSockts.
+11. Lesson 10 - Testing & Deployment?
+12. Lessons 11+ - Most of the stuff so far has been on Servant - I'm planning
     lessons on working with Opaleye (more complicated queries, changing up the
     types involved, and maybe even playing with opaleye-sot).
 
