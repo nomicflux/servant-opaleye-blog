@@ -55,3 +55,8 @@ The next few sections under development are:
 This tutorial assumes that you have glanced at the [Servant Tutorial](http://haskell-servant.github.io/tutorial/) and the [Opaleye Basic Tutorial](https://github.com/tomjaguarpaw/haskell-opaleye/blob/master/Doc/Tutorial/TutorialBasic.lhs).  You do not necessarily need to fully understand those tutorials; I wrote this current one to figure out what was what.  But you may be lost without at least a passing familiarity with those other tutorials.
 
 Also, I've tried to make few assumptions about how well people know Haskell.  In general, I'd rather explain things than not; feel free to file an issue if you want a section clarified.
+
+## Sites Using Servant
+
+1. Hercules CI -
+   [https://github.com/hercules-ci/hercules](https://github.com/hercules-ci/hercules)
