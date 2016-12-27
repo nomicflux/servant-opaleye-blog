@@ -10,6 +10,10 @@ If you look at the files, you'll notice all sorts of language extensions being u
 
 In order to use a database, we'll need a database.  I have included *blogtutorial_schema.sql* if you wish to import the schema into Postgres.  If you would prefer to create the tables manually, here is a rough-and-ready version of what I use:
 ```pgsql
+CREATE USER blogtutorial WITH PASSWORD 'blogtutorial';
+CREATE DATABASE blogtutorial OWNER blogtutorial;
+```
+```pgsql
 CREATE TABLE users (
     email VARCHAR UNIQUE NOT NULL,
     password BYTEA NOT NULL,
