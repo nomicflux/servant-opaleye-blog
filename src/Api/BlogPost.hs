@@ -8,7 +8,7 @@ import Servant
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Maybe (listToMaybe)
-import Data.DateTime (DateTime, fromGregorian')
+import Data.Time (UTCTime (..), fromGregorian)
 
 import App
 
@@ -17,7 +17,7 @@ data BlogPost = BlogPost
               , bpTitle      :: String
               , bpBody       :: String
               , bpUsersEmail :: Email
-              , bpTimestamp  :: DateTime
+              , bpTimestamp  :: UTCTime
               }
 
 instance ToJSON BlogPost where
@@ -40,6 +40,8 @@ instance FromJSON BlogPost where
 posts :: [BlogPost]
 posts = [ BlogPost 1 "First Post" "I don't like apples very much right now." "isaacnewton@gmail.com" (fromGregorian' 1726 4 15)
         , BlogPost 2 "My Blog" "Bored at the patent office, thought I'd start a blog." "alberteinstein@hotmail.com" (fromGregorian' 1903 6 16)]
+    where
+        fromGregorian' y m d = UTCTime (fromGregorian y m d) 0
 
 type BlogPostAPI = Get '[JSON] [BlogPost]
               :<|> Capture "id" BlogPostID :> Get '[JSON] (Maybe BlogPost)
