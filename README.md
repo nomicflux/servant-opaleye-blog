@@ -106,7 +106,7 @@ data BlogPost = BlogPost
               , bpTitle      :: String
               , bpBody       :: String
               , bpUsersEmail :: Email
-              , bpTimestamp  :: DateTime
+              , bpTimestamp  :: UTCTime
               }
 ```
 All of the steps will be the same as for the User API.  For an exercise, see how much you can implement on your own without looking at the BlogPost.hs file in the "src/API/" directory.
